@@ -1,0 +1,9 @@
+.vscode/
+Include/
+Lib/
+Scripts/
+tcl/
+works/__pycache__/
+
+works/dbf/*
+LICENSE.txt
