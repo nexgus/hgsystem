@@ -1,0 +1,1 @@
+cmd /k "cd /d C:\MyProjects\hgsystem\Scripts & activate & cd /d C:\MyProjects\hgsystem\works & python main.py"

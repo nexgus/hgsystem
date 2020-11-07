@@ -134,7 +134,10 @@ class Edit(QGroupBox):
         title = self.edtTitle.text().strip()
         addr  = self.edtAddr.text().strip()
         date = self.edtBirthdate.date()
-        birthdate = f"{date.year}/{date.month}/{date.day}"
+        if date is None:
+            birthdate = "0/00/00"
+        else:
+            birthdate = f"{date.year}/{date.month}/{date.day}"
         phone1 = self.edtPhone1.text().strip()
         phone2 = self.edtPhone2.text().strip()
         phone3 = self.edtPhone3.text().strip()
