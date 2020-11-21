@@ -8,6 +8,7 @@ from PySide2.QtCore import QEvent
 from PySide2.QtCore import Signal
 from PySide2.QtGui import QBrush
 from PySide2.QtGui import QColor
+from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QComboBox
 from PySide2.QtWidgets import QDialog
 from PySide2.QtWidgets import QHBoxLayout
@@ -112,6 +113,9 @@ class MyDateWidget(QWidget):
 
     def __init__(self, year=0, month=0, day=0):
         super(MyDateWidget, self).__init__()
+
+        font = QFont("Helvetica", 10, QFont.Bold)
+        self.setFont(font)
 
         txtYearType = QLabel('民國')
         txtYear = QLabel('年')

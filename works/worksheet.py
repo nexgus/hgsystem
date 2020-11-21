@@ -42,7 +42,7 @@ class MedicalRecord(QGroupBox):
         txtPd = QLabel('PD', parent=self)
         txtSource = QLabel('來源', parent=self)
         for obj in (txtSph, txtCyl, txtAxis, txtBase, txtBCV, txtBCH, txtAdd, txtPd, txtSource):
-            obj.setMaximumWidth(40)
+            obj.setMaximumWidth(50)
         self.edtSource = QLineEdit(parent=self)
         self.edtSphR = QLineEdit(parent=self)
         self.edtSphL = QLineEdit(parent=self)
@@ -149,7 +149,7 @@ class GlassesRecord(QGroupBox):
         txtGlasses = QLabel('鏡架')
         txtMemo = QLabel('備註')
         for obj in (txtSightSee, txtLens, txtGlasses, txtMemo):
-            obj.setFixedWidth(40)
+            obj.setFixedWidth(50)
         self.edtSightSeeR = QLineEdit()
         self.edtSightSeeL = QLineEdit()
         self.edtLensR = QLineEdit()

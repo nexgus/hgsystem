@@ -68,7 +68,7 @@ class Edit(QGroupBox):
         txtBirthdate = QLabel('生日')
         txtBroker = QLabel('介紹人')
         for obj in (txtName, txtAddr, txtPhone, txtBirthdate, txtBroker):
-            obj.setFixedWidth(45)
+            obj.setFixedWidth(65)
         self.edtName   = QLineEdit()
         self.edtTitle  = QLineEdit()
         self.edtAddr   = QLineEdit()
@@ -77,6 +77,7 @@ class Edit(QGroupBox):
         self.edtPhone3 = QLineEdit()
         self.edtPhone4 = QLineEdit()
         self.edtBirthdate = MyDateWidget()
+        #self.edtBirthdate.setFixedHeight(60)
         self.edtBroker = QLineEdit()
 
         layoutEdit = QGridLayout()
@@ -572,7 +573,7 @@ class Search(QDialog):
         txtName = QLabel('姓名')
         txtAddr = QLabel('地址')
         for obj in (txtName, txtAddr, txtPhone, txtBirth):
-            obj.setFixedWidth(40)
+            obj.setFixedWidth(50)
         self.edtName = MyLineEdit()
         self.edtAddr = QLineEdit()
         self.edtPhone = QLineEdit()
