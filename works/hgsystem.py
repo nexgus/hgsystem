@@ -5,10 +5,21 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 ###################################################################################################
 VER_MAJOR = 0
 VER_MINOR = 1
-VER_PATCH = 4
+VER_PATCH = 5
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}"
 
-FONT = QFont("Helvetica", 12, 75)
+fonts = {
+    "新細明體": "PMingLiU",
+    "細明體": "MingLiU",
+    "標楷體": "DFKai-SB",
+    "宋體": "SimSun",
+    "新宋體": "NSimSun",
+    "仿宋": "FangSong",
+    "楷體": "KaiTi",
+    "微軟正黑體": "Microsoft JhengHei",
+    "微軟雅黑體": "Microsoft YaHei",
+}
+FONT = QFont(fonts["微軟雅黑體"], 12, 50) 
 
 YearTaiwan = 0
 YearCommon = 1
