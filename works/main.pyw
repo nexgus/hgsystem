@@ -15,19 +15,8 @@ class MainWindow(QMainWindow):
         self.mongodb = MongoClient(mongo_host, mongo_port)
         self.setCentralWidget(MainWidget(self.mongodb))
 
-        #self.createAction()
-        #self.createMenu()
-
     def __del__(self):
         self.mongodb.close()
-
-    #def createAction(self):
-    #    self.actCustomerNew = QAction(
-    #        '&New', self, triggered=self.centralWidget().customer.edit.cmdAppend.click)
-
-    #def createMenu(self):
-    #    self.menuCustomer = self.menuBar().addMenu('&Customer')
-    #    self.menuCustomer.addAction(self.actCustomerNew)
 
 ####################################################################################################
 if __name__ == "__main__":

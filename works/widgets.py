@@ -8,7 +8,6 @@ from PySide2.QtCore import QEvent
 from PySide2.QtCore import Signal
 from PySide2.QtGui import QBrush
 from PySide2.QtGui import QColor
-from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QComboBox
 from PySide2.QtWidgets import QDialog
 from PySide2.QtWidgets import QHBoxLayout
@@ -113,32 +112,38 @@ class MyDateWidget(QWidget):
 
     def __init__(self, year=0, month=0, day=0):
         super(MyDateWidget, self).__init__()
-
-        font = QFont("Helvetica", 10, QFont.Bold)
-        self.setFont(font)
-
+        self.setFont(hg.FONT)
+        
         txtYearType = QLabel('民國')
         txtYear = QLabel('年')
         txtMonth = QLabel('月')
         txtDay = QLabel('日')
+        for obj in (txtYearType, txtYear, txtMonth, txtDay):
+            obj.setFont(hg.FONT)
 
         self.edtYear = MySpinBox()
+        self.edtYear.setFont(hg.FONT)
         self.edtYear.setMinimum(TaiwanEra.toTaiwanEra(1))
         self.edtYear.setMaximum(TaiwanEra.toTaiwanEra(9999))
         self.edtYear.setValue(year)
         self.edtYear.setAlignment(Qt.AlignRight)
         self.edtYear.setMinimumWidth(50)
+        self.edtYear.setFixedHeight(25)
 
         self.edtMonth = QComboBox()
+        self.edtMonth.setFont(hg.FONT)
         self.edtMonth.setMinimumWidth(50)
         self.edtMonth.setEditable(True)
         for x in range(13):
             self.edtMonth.addItem(str(x))
         self.edtMonth.setCurrentIndex(month)
+        self.edtMonth.setFixedHeight(25)
 
         self.edtDay = QComboBox()
+        self.edtDay.setFont(hg.FONT)
         self.edtDay.setMinimumWidth(50)
         self.edtDay.setEditable(True)
+        self.edtDay.setFixedHeight(25)
     
         days = self.DaysPerMonth[month]
         if days == 28:  # It must be Feb.
@@ -249,21 +254,23 @@ class MyDateWidget(QWidget):
         day   = today.day()
         self.setDate(year, month, day)
 
-###################################################################################################
+####################################################################################################
 class MyLineEdit(QLineEdit):
     def __init__(self, *args):
         QLineEdit.__init__(self, *args)
 
     def event(self, event):
         if event.type()==QEvent.KeyPress and event.key()==Qt.Key_Enter:
-            print("Enter key pressed")
             return True
 
         return QLineEdit.event(self, event)
 
-##############################################################################################################
+####################################################################################################
 class MySpinBox(QSpinBox):
     focusOut = Signal()
+
+    def __init__(self, *args):
+        QSpinBox.__init__(self, *args)
 
     def focusOutEvent(self, event):
         QSpinBox.focusOutEvent(self, event)

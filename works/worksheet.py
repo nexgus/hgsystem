@@ -17,6 +17,7 @@ from widgets import MyDateWidget
 class MedicalRecord(QGroupBox):
     def __init__(self):
         super(MedicalRecord, self).__init__()
+        self.setFont(hg.FONT)
         self.setTitle('處方箋')
 
         """
@@ -32,6 +33,9 @@ class MedicalRecord(QGroupBox):
         """
         txtRight = QLabel('OD/R', parent=self)
         txtLeft = QLabel('OS/L', parent=self)
+        txtRight.setFont(hg.FONT)
+        txtLeft.setFont(hg.FONT)
+
         txtSph = QLabel('SPH', parent=self)
         txtCyl = QLabel('CYL', parent=self)
         txtAxis = QLabel('AXIS', parent=self)
@@ -41,9 +45,13 @@ class MedicalRecord(QGroupBox):
         txtAdd = QLabel('ADD', parent=self)
         txtPd = QLabel('PD', parent=self)
         txtSource = QLabel('來源', parent=self)
+
         for obj in (txtSph, txtCyl, txtAxis, txtBase, txtBCV, txtBCH, txtAdd, txtPd, txtSource):
             obj.setMaximumWidth(50)
+            obj.setFont(hg.FONT)
+
         self.edtSource = QLineEdit(parent=self)
+        self.edtSource.setFont(hg.FONT)
         self.edtSphR = QLineEdit(parent=self)
         self.edtSphL = QLineEdit(parent=self)
         self.edtCylR = QLineEdit(parent=self)
@@ -63,6 +71,7 @@ class MedicalRecord(QGroupBox):
                     self.edtCylL, self.edtAxisR, self.edtAxisL, self.edtBaseR, self.edtBaseL, self.edtBCVR, 
                     self.edtBCVL, self.edtBCHR, self.edtBCHL, self.edtAddR, self.edtAddL, self.edtPd):
             obj.setAlignment(Qt.AlignHCenter)
+            obj.setFont(hg.FONT)
 
         self.setTabOrder(self.edtSphR, self.edtCylR)
         self.setTabOrder(self.edtCylR, self.edtAxisR)
@@ -140,24 +149,33 @@ class MedicalRecord(QGroupBox):
 class GlassesRecord(QGroupBox):
     def __init__(self):
         super(GlassesRecord, self).__init__()
+        self.setFont(hg.FONT)
         self.setTitle('眼鏡資料')
 
         txtRight = QLabel('OD/R')
         txtLeft = QLabel('OS/L')
+        txtRight.setFont(hg.FONT)
+        txtLeft.setFont(hg.FONT)
+
         txtSightSee = QLabel('視力')
         txtLens = QLabel('鏡片')
         txtGlasses = QLabel('鏡架')
         txtMemo = QLabel('備註')
         for obj in (txtSightSee, txtLens, txtGlasses, txtMemo):
             obj.setFixedWidth(50)
+            obj.setFont(hg.FONT)
+
         self.edtSightSeeR = QLineEdit()
         self.edtSightSeeL = QLineEdit()
         self.edtLensR = QLineEdit()
         self.edtLensL = QLineEdit()
         self.edtGlasses = QLineEdit()
         self.edtMemo = QLineEdit()
+
         for obj in (self.edtSightSeeR, self.edtSightSeeL):
             obj.setAlignment(Qt.AlignHCenter)
+        for obj in (self.edtSightSeeR, self.edtSightSeeL, self.edtLensR, self.edtLensL, self.edtGlasses, self.edtMemo):
+            obj.setFont(hg.FONT)
 
         layout = QGridLayout()
         layout.addWidget(txtRight,          0, 1, Qt.AlignHCenter)
@@ -205,6 +223,7 @@ class GlassesRecord(QGroupBox):
 class PriceRecord(QGroupBox):
     def __init__(self):
         super(PriceRecord, self).__init__()
+        self.setFont(hg.FONT)
         self.setTitle('金額')
 
         txtLens = QLabel('鏡片')
@@ -212,15 +231,18 @@ class PriceRecord(QGroupBox):
         txtTotal = QLabel('合計')
         for obj in (txtLens, txtGlasses, txtTotal):
             obj.setFixedWidth(40)
+            obj.setFont(hg.FONT)
         self.edtGlasses = QSpinBox()
         self.edtLensR = QSpinBox()
         for obj in (self.edtGlasses, self.edtLensR):
             obj.setRange(0, 100000000)
             obj.setAlignment(Qt.AlignRight)
+            obj.setFont(hg.FONT)
         self.edtTotal = QLineEdit()
         self.edtTotal.setAlignment(Qt.AlignRight)
         self.edtTotal.setAlignment(Qt.AlignRight)
         self.edtTotal.setReadOnly(True)
+        self.edtTotal.setFont(hg.FONT)
 
         layout = QGridLayout()
         layout.addWidget(txtLens,         1, 0)
@@ -272,6 +294,7 @@ class PriceRecord(QGroupBox):
 class WorkSheet(QGroupBox):
     def __init__(self):
         super(WorkSheet, self).__init__()
+        self.setFont(hg.FONT)
         self.setTitle('配鏡資料')
         self._beforeEdit = {'wid': '', 'cid': ''}
         self._wid = ''
@@ -279,6 +302,7 @@ class WorkSheet(QGroupBox):
 
         txtAcceptDate = QLabel('收件日')
         #txtAcceptDate.setFixedWidth(50)
+        txtAcceptDate.setFont(hg.FONT)
         self.edtAccept = MyDateWidget()
         layoutAccept = QHBoxLayout()
         layoutAccept.addWidget(txtAcceptDate)
@@ -287,6 +311,7 @@ class WorkSheet(QGroupBox):
 
         txtDeliverDate = QLabel('交件日')
         #txtDeliverDate.setFixedWidth(50)
+        txtDeliverDate.setFont(hg.FONT)
         self.edtDeliver = MyDateWidget()
         layoutDeliver = QHBoxLayout()
         layoutDeliver.addWidget(txtDeliverDate)
@@ -298,6 +323,8 @@ class WorkSheet(QGroupBox):
         self.cmdRemove = QPushButton('(&D) 刪除')
         self.cmdSave   = QPushButton('(&S) 儲存')
         self.cmdCancel = QPushButton('(&C) 取消')
+        for obj in (self.cmdAppend, self.cmdModify, self.cmdRemove, self.cmdSave, self.cmdCancel):
+            obj.setFont(hg.FONT)
         layoutControl  = QHBoxLayout()
         layoutControl.addWidget(self.cmdAppend)
         layoutControl.addWidget(self.cmdModify)

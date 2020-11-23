@@ -1,11 +1,14 @@
 from datetime import date
 from datetime import datetime
+from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 
 ###################################################################################################
 VER_MAJOR = 0
 VER_MINOR = 1
-VER_PATCH = 3
+VER_PATCH = 4
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}"
+
+FONT = QFont("Helvetica", 12, 75)
 
 YearTaiwan = 0
 YearCommon = 1

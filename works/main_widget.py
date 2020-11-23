@@ -6,7 +6,6 @@ import worksheet as ws
 from bson.objectid import ObjectId
 from copy import deepcopy
 from datetime import datetime
-from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QDialog
 from PySide2.QtWidgets import QMessageBox
 from PySide2.QtWidgets import QVBoxLayout
@@ -16,12 +15,10 @@ from PySide2.QtWidgets import QWidget
 class MainWidget(QWidget):
     def __init__(self, mongodb):
         super(MainWidget, self).__init__()
+
         self.db = mongodb.hgsystem
         self._isCustomerAppendMode = False
         self._isWorksheetAppendMode = False
-
-        font = QFont("Helvetica", 10, QFont.Bold)
-        self.setFont(font)
 
         self.customer = cust.Customer()
         self.worksheet = ws.WorkSheet()

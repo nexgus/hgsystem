@@ -42,6 +42,8 @@ class Edit(QGroupBox):
 
     def __init__(self):
         super(Edit, self).__init__()
+        self.setFont(hg.FONT)
+
         self._cid = ''
         self._total = 0
         self._beforeEdit = {
@@ -54,6 +56,10 @@ class Edit(QGroupBox):
         self.cmdSearch = QPushButton('(&F) 搜尋')
         self.cmdSave   = QPushButton('(&S) 儲存')
         self.cmdCancel = QPushButton('(&C) 取消')
+
+        for obj in (self.cmdAppend, self.cmdModify, self.cmdRemove, self.cmdSearch, self.cmdSave, self.cmdCancel):
+            obj.setFont(hg.FONT)
+
         layoutControl  = QHBoxLayout()
         layoutControl.addWidget(self.cmdSearch)
         layoutControl.addWidget(self.cmdModify)
@@ -68,7 +74,9 @@ class Edit(QGroupBox):
         txtBirthdate = QLabel('生日')
         txtBroker = QLabel('介紹人')
         for obj in (txtName, txtAddr, txtPhone, txtBirthdate, txtBroker):
+            obj.setFont(hg.FONT)
             obj.setFixedWidth(65)
+
         self.edtName   = QLineEdit()
         self.edtTitle  = QLineEdit()
         self.edtAddr   = QLineEdit()
@@ -76,9 +84,15 @@ class Edit(QGroupBox):
         self.edtPhone2 = QLineEdit()
         self.edtPhone3 = QLineEdit()
         self.edtPhone4 = QLineEdit()
+    
+        for obj in (self.edtName, self.edtTitle, self.edtAddr, self.edtPhone1, self.edtPhone2, self.edtPhone3, self.edtPhone4):
+            obj.setFont(hg.FONT)
+
         self.edtBirthdate = MyDateWidget()
-        #self.edtBirthdate.setFixedHeight(60)
+        self.edtBirthdate.setFixedHeight(40)
+    
         self.edtBroker = QLineEdit()
+        self.edtBroker.setFont(hg.FONT)
 
         layoutEdit = QGridLayout()
         layoutEdit.addWidget(txtName,        0, 0)
@@ -246,6 +260,7 @@ class History(QTableWidget):
 
     def __init__(self):
         super(History, self).__init__()
+        self.setFont(hg.FONT)
 
         self.setColumnCount(len(self.HEADERS))
         self.setHorizontalHeaderLabels(self.HEADERS)
@@ -384,6 +399,7 @@ class TableWidget(QTableWidget):
 
     def __init__(self):
         super(TableWidget, self).__init__()
+        self.setFont(hg.FONT)
 
         self.setColumnCount(len(self.HEADERS))
         self.setHorizontalHeaderLabels(self.HEADERS)
@@ -565,6 +581,7 @@ class TableWidget(QTableWidget):
 class Search(QDialog):
     def __init__(self, db, parent=None):
         super(Search, self).__init__(parent)
+        self.setFont(hg.FONT)
         self._db = db
         self._row = -1
 
@@ -574,18 +591,11 @@ class Search(QDialog):
         txtAddr = QLabel('地址')
         for obj in (txtName, txtAddr, txtPhone, txtBirth):
             obj.setFixedWidth(50)
-        self.edtName = MyLineEdit()
-        self.edtAddr = QLineEdit()
         self.edtPhone = QLineEdit()
         self.edtBirthdate = MyDateWidget()
+        self.edtName = MyLineEdit()
+        self.edtAddr = QLineEdit()
         self.cmdSearch = QPushButton('(&F) 搜尋')
-
-        #self.cmdClrName = QPushButton('X')
-        #self.cmdClrAddr = QPushButton('X')
-        #self.cmdClrPhone = QPushButton('X')
-        #self.cmdClrBirthdate = QPushButton('X')
-        #for obj in (self.cmdClrName, self.cmdClrAddr, self.cmdClrPhone, self.cmdClrBirthdate):
-        #    obj.setFixedWidth(15)
 
         layoutFilter = QGridLayout()
         layoutFilter.addWidget(txtPhone,             0, 0)
@@ -596,10 +606,6 @@ class Search(QDialog):
         layoutFilter.addWidget(self.edtBirthdate,    1, 1, 1, 2)
         layoutFilter.addWidget(self.edtName,         2, 1, 1, 2)
         layoutFilter.addWidget(self.edtAddr,         3, 1, 1, 2)
-        #layoutFilter.addWidget(self.cmdClrPhone,     0, 3)
-        #layoutFilter.addWidget(self.cmdClrBirthdate, 1, 3)
-        #layoutFilter.addWidget(self.cmdClrName,      2, 3)
-        #layoutFilter.addWidget(self.cmdClrAddr,      3, 3)
         layoutFilter.addWidget(self.cmdSearch,       5, 0, 1, 3)
         layoutFilter.setRowMinimumHeight(4, 20)
 
