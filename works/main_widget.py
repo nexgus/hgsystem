@@ -82,7 +82,8 @@ class MainWidget(QWidget):
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
         if self.customer.history.rowCount() > 0:
-            wid, cid, date, medicalRecord, glassesRecord, priceRecord = self.worksheet.unwrap(self.customer.history.getRowContents(0))
+            wid, cid, date, medicalRecord, glassesRecord, priceRecord = \
+                self.worksheet.unwrap(self.customer.history.getRowContents(0))
             self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
         if self.customer.edit.getCID() == '':
             self.worksheet.setEditMode(hg.EditMode.inhibit)

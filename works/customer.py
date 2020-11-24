@@ -253,9 +253,9 @@ class Edit(QGroupBox):
 ##############################################################################################################
 class History(QTableWidget):
     HEADERS = ['wid', 'cid', '收件日', '交件日', 'SPH(R)', 'SPH(L)', 'CYL(R)', 'CYL(L)', 
-               'AXIS(R)', 'AXIS(L)', 'BASE(R)', 'BASE(L)', 'BC.V(R)', 'BC.V(L)', 'BC.H(R)', 'BC.H(L)', 
-               'ADD(R)', 'ADD(L)', 'PD', 'source', '視力(R)', '視力(L)', '鏡片(R)', '鏡片(L)', '鏡架', 'memo',
-               'priceLens', 'priceFrame']
+               'AXIS(R)', 'AXIS(L)', 'BASE(R)', 'BASE(L)', 'BC(R)', 'BC(L)', 'BC.V(R)', 'BC.V(L)', 
+               'BC.H(R)', 'BC.H(L)', 'ADD(R)', 'ADD(L)', 'PD', 'source', '視力(R)', '視力(L)', '鏡片(R)', 
+               '鏡片(L)', '鏡架', 'memo','priceLens', 'priceFrame']
     _isFrozen = False
 
     def __init__(self):
@@ -268,9 +268,9 @@ class History(QTableWidget):
         for idx in range(len(self.HEADERS)-1):
             header.setSectionResizeMode(idx, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(len(self.HEADERS)-1, QHeaderView.Stretch)
-        for hiddenHeader in ('cid', 'wid', 'AXIS(R)', 'AXIS(L)', 'BASE(R)', 'BASE(L)', 'BC.V(R)', 'BC.V(L)', 
-                             'BC.H(R)', 'BC.H(L)', 'ADD(R)', 'ADD(L)', 'PD', 'source', 'memo', 
-                             'priceLens', 'priceFrame'):
+        for hiddenHeader in ('cid', 'wid', 'AXIS(R)', 'AXIS(L)', 'BASE(R)', 'BASE(L)', 'BC.V(R)', 
+                             'BC.V(R)', 'BC.V(L)', 'BC.H(R)', 'BC.H(L)', 'ADD(R)', 'ADD(L)', 'PD', 'source', 
+                             'memo', 'priceLens', 'priceFrame'):
             self.setColumnHidden(self.HEADERS.index(hiddenHeader), True)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setWordWrap(False)
@@ -289,12 +289,20 @@ class History(QTableWidget):
         record_ = [
             record["_id"], record["cid"], 
             hg.toROCDateString(record["order_time"]), hg.toROCDateString(record["deliver_time"]),
-            record["sph_r"], record["sph_l"], record["cyl_r"], record["cyl_l"],
-            record["axis_r"], record["axis_l"], record["base_r"], record["base_l"],
-            record["bcv_r"], record["bcv_l"], record["bch_r"], record["bch_l"],
-            record["add_r"], record["add_l"], record["pd"], record["source"],
-            record["sight_see_r"], record["sight_see_r"], record["lens_r"], record["lens_l"],
-            record["frame"], record["memo"], str(record["lens_price"]), str(record["frame_price"]),
+            record["sph_r"], record["sph_l"], 
+            record["cyl_r"], record["cyl_l"],
+            record["axis_r"], record["axis_l"], 
+            record["base_r"], record["base_l"],
+            record["bc_r"], record["bc_l"],
+            record["bcv_r"], record["bcv_l"], 
+            record["bch_r"], record["bch_l"],
+            record["add_r"], record["add_l"], 
+            record["pd"], record["source"],
+            record["eyesight_r"], record["eyesight_r"], 
+            record["lens_r"], record["lens_l"],
+            record["frame"], 
+            record["memo"], 
+            str(record["lens_price"]), str(record["frame_price"]),
         ]
         row = self.rowCount()
         self.insertRow(row)

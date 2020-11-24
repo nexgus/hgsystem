@@ -10,6 +10,7 @@ from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QPushButton
 from PySide2.QtWidgets import QSpinBox
+from PySide2.QtWidgets import QVBoxLayout
 from PySide2.QtWidgets import QWidget
 from widgets import MyDateWidget
 
@@ -40,13 +41,14 @@ class MedicalRecord(QGroupBox):
         txtCyl = QLabel('CYL', parent=self)
         txtAxis = QLabel('AXIS', parent=self)
         txtBase = QLabel('BASE', parent=self)
+        txtBC = QLabel('BC', parent=self)
         txtBCV = QLabel('BC.V', parent=self)
         txtBCH = QLabel('BC.H', parent=self)
         txtAdd = QLabel('ADD', parent=self)
         txtPd = QLabel('PD', parent=self)
         txtSource = QLabel('來源', parent=self)
 
-        for obj in (txtSph, txtCyl, txtAxis, txtBase, txtBCV, txtBCH, txtAdd, txtPd, txtSource):
+        for obj in (txtSph, txtCyl, txtAxis, txtBase, txtBC, txtBCV, txtBCH, txtAdd, txtPd, txtSource):
             obj.setMaximumWidth(50)
             obj.setFont(hg.FONT)
 
@@ -60,6 +62,8 @@ class MedicalRecord(QGroupBox):
         self.edtAxisL = QLineEdit(parent=self)
         self.edtBaseR = QLineEdit(parent=self)
         self.edtBaseL = QLineEdit(parent=self)
+        self.edtBCR = QLineEdit(parent=self)
+        self.edtBCL = QLineEdit(parent=self)
         self.edtBCVR = QLineEdit(parent=self)
         self.edtBCVL = QLineEdit(parent=self)
         self.edtBCHR = QLineEdit(parent=self)
@@ -68,7 +72,7 @@ class MedicalRecord(QGroupBox):
         self.edtAddL = QLineEdit(parent=self)
         self.edtPd = QLineEdit(parent=self)
         for obj in (self.edtSphR, self.edtSphL, self.edtCylR, 
-                    self.edtCylL, self.edtAxisR, self.edtAxisL, self.edtBaseR, self.edtBaseL, self.edtBCVR, 
+                    self.edtCylL, self.edtAxisR, self.edtAxisL, self.edtBaseR, self.edtBaseL, self.edtBCR, self.edtBCL, self.edtBCVR, 
                     self.edtBCVL, self.edtBCHR, self.edtBCHL, self.edtAddR, self.edtAddL, self.edtPd):
             obj.setAlignment(Qt.AlignHCenter)
             obj.setFont(hg.FONT)
@@ -94,11 +98,12 @@ class MedicalRecord(QGroupBox):
         layout.addWidget(txtCyl,            2, 0)
         layout.addWidget(txtAxis,           3, 0)
         layout.addWidget(txtBase,           4, 0)
-        layout.addWidget(txtBCV,            5, 0)
-        layout.addWidget(txtBCH,            6, 0)
-        layout.addWidget(txtAdd,            7, 0)
-        layout.addWidget(txtPd,             8, 0)
-        layout.addWidget(txtSource,         9, 0)
+        layout.addWidget(txtBC,             5, 0)
+        layout.addWidget(txtBCV,            6, 0)
+        layout.addWidget(txtBCH,            7, 0)
+        layout.addWidget(txtAdd,            8, 0)
+        layout.addWidget(txtPd,             9, 0)
+        layout.addWidget(txtSource,        10, 0)
         layout.addWidget(self.edtSphR,      1, 1)
         layout.addWidget(self.edtSphL,      1, 2)
         layout.addWidget(self.edtCylR,      2, 1)
@@ -107,23 +112,23 @@ class MedicalRecord(QGroupBox):
         layout.addWidget(self.edtAxisL,     3, 2)
         layout.addWidget(self.edtBaseR,     4, 1)
         layout.addWidget(self.edtBaseL,     4, 2)
-        layout.addWidget(self.edtBCVR,      5, 1)
-        layout.addWidget(self.edtBCVL,      5, 2)
-        layout.addWidget(self.edtBCHR,      6, 1)
-        layout.addWidget(self.edtBCHL,      6, 2)
-        layout.addWidget(self.edtAddR,      7, 1)
-        layout.addWidget(self.edtAddL,      7, 2)
-        layout.addWidget(self.edtPd,        8, 1, 1, 2)
-        layout.addWidget(self.edtSource,    9, 1, 1, 2)
+        layout.addWidget(self.edtBCR,       5, 1)
+        layout.addWidget(self.edtBCL,       5, 2)
+        layout.addWidget(self.edtBCVR,      6, 1)
+        layout.addWidget(self.edtBCVL,      6, 2)
+        layout.addWidget(self.edtBCHR,      7, 1)
+        layout.addWidget(self.edtBCHL,      7, 2)
+        layout.addWidget(self.edtAddR,      8, 1)
+        layout.addWidget(self.edtAddL,      8, 2)
+        layout.addWidget(self.edtPd,        9, 1, 1, 2)
+        layout.addWidget(self.edtSource,   10, 1, 1, 2)
         self.setLayout(layout)
-        self._createConnection()
 
-        self._edits = (self.edtSphR, self.edtSphL, self.edtCylR, 
-                       self.edtCylL, self.edtAxisR, self.edtAxisL, self.edtBaseR, self.edtBaseL, self.edtBCVR, 
-                       self.edtBCVL, self.edtBCHR, self.edtBCHL, self.edtAddR, self.edtAddL, self.edtPd, self.edtSource)
-
-    def _createConnection(self):
-        pass
+        self._edits = (self.edtSphR, self.edtSphL, self.edtCylR, self.edtCylL, 
+                       self.edtAxisR, self.edtAxisL, self.edtBaseR, self.edtBaseL, 
+                       self.edtBCR, self.edtBCL, self.edtBCVR, self.edtBCVL, 
+                       self.edtBCHR, self.edtBCHL, self.edtAddR, self.edtAddL, 
+                       self.edtPd, self.edtSource)
 
     def clear(self):
         for obj in self._edits:
@@ -336,17 +341,16 @@ class WorkSheet(QGroupBox):
         self.glassesRecord = GlassesRecord()
         self.priceRecord = PriceRecord()
 
-        layoutMedicalGlasses = QHBoxLayout()
-        layoutMedicalGlasses.addWidget(self.medicalRecord)
-        layoutMedicalGlasses.addWidget(self.glassesRecord)
-
         layout = QGridLayout()
         layout.setColumnMinimumWidth(1, 20)
         layout.addLayout(layoutAccept,  0, 0)
         layout.addLayout(layoutDeliver, 0, 2)
-        layout.addLayout(layoutMedicalGlasses, 1, 0, 1, 3)
-        layout.addWidget(self.priceRecord,     2, 0, 1, 3)
+        # row, column, rowSpan, columnSpan
+        layout.addWidget(self.medicalRecord,   1, 0, 2, 1)
+        layout.addWidget(self.glassesRecord,   1, 2, 1, 1)
+        layout.addWidget(self.priceRecord,     2, 2, 1, 1)
         layout.addLayout(layoutControl,        3, 0, 1, 3)
+
         self.setLayout(layout)
         self._createConnection()
 
@@ -386,6 +390,8 @@ class WorkSheet(QGroupBox):
             "axis_l": self.medicalRecord.edtAxisL.text().strip(),
             "base_r": self.medicalRecord.edtBaseR.text().strip(),
             "base_l": self.medicalRecord.edtBaseL.text().strip(),
+            "bc_r": self.medicalRecord.edtBCR.text().strip(),
+            "bc_l": self.medicalRecord.edtBCL.text().strip(),
             "bcv_r": self.medicalRecord.edtBCVR.text().strip(),
             "bcv_l": self.medicalRecord.edtBCVL.text().strip(),
             "bch_r": self.medicalRecord.edtBCHR.text().strip(),
@@ -394,8 +400,8 @@ class WorkSheet(QGroupBox):
             "add_l": self.medicalRecord.edtAddL.text().strip(),
             "pd": self.medicalRecord.edtPd.text().strip(),
             "source": self.medicalRecord.edtSource.text().strip(),
-            "sight_see_r": self.glassesRecord.edtSightSeeR.text().strip(),
-            "sight_see_l": self.glassesRecord.edtSightSeeL.text().strip(),
+            "eyesight_r": self.glassesRecord.edtSightSeeR.text().strip(),
+            "eyesight_l": self.glassesRecord.edtSightSeeL.text().strip(),
             "lens_r": self.glassesRecord.edtLensR.text().strip(),
             "lens_l": self.glassesRecord.edtLensL.text().strip(),
             "frame": self.glassesRecord.edtGlasses.text().strip(),
@@ -484,6 +490,8 @@ class WorkSheet(QGroupBox):
             doc["axis_l"],
             doc["base_r"],
             doc["base_l"],
+            doc["bc_r"],
+            doc["bc_l"],
             doc["bcv_r"],
             doc["bcv_l"],
             doc["bch_r"],
@@ -492,8 +500,8 @@ class WorkSheet(QGroupBox):
             doc["add_l"],
             doc["pd"],
             doc["source"],
-            doc["sight_see_r"],
-            doc["sight_see_l"],
+            doc["eyesight_r"],
+            doc["eyesight_l"],
             doc["lens_r"],
             doc["lens_l"],
             doc["frame"],
