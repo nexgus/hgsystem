@@ -5,7 +5,7 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 ###################################################################################################
 VER_MAJOR = 0
 VER_MINOR = 2
-VER_PATCH = 0
+VER_PATCH = 1
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}"
 
 fonts = {

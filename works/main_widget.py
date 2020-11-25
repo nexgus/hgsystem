@@ -195,9 +195,49 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def historyCurrentCellChanged(self, curRow, curCol, prvRow=-1, prvCol=-1):
         if curRow < 0: return
-        worksheet = self.customer.history.getRowContents(curRow)
-        wid, cid, date, medicalRecord, glassesRecord, priceRecord = self.worksheet.unwrap(worksheet)
-        self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
+        #worksheet = self.customer.history.getRowContents(curRow)
+        #wid, cid, date, medicalRecord, glassesRecord, priceRecord = self.worksheet.unwrap(worksheet)
+        #self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
+        record = self.customer.history.getRowContents(curRow)
+        worksheet = {
+            'wid': record[0],
+            'cid': record[1],
+            'order_time': record[2],
+            'deliver_time': record[3],
+            'medical': {
+                'sph_r': record[4],
+                'sph_l': record[5],
+                'cyl_r': record[6],
+                'cyl_l': record[7],
+                'axis_r': record[8],
+                'axis_l': record[9],
+                'base_r': record[10],
+                'base_l': record[11],
+                'bc_r': record[12],
+                'bc_l': record[13],
+                'bcv_r': record[14],
+                'bcv_l': record[15],
+                'bch_r': record[16],
+                'bch_l': record[17],
+                'add_r': record[18],
+                'add_l': record[19],
+                'pd': record[20],
+                'source': record[21],
+            },
+            'glasses': {
+                'eyesight_r': record[22],
+                'eyesight_l': record[23],
+                'lens_r': record[24],
+                'lens_l': record[25],
+                'frame': record[26],
+                'memo': record[27],
+            },
+            'price': {
+                'priceLens': record[28],
+                'priceFrame': record[29],
+            },
+        }
+        self.worksheet.setContentsEx(worksheet)
 
     #-----------------------------------------------------------------------------------------------
     def worksheetAppend(self):
@@ -218,7 +258,8 @@ class MainWidget(QWidget):
         else:
             row = self.customer.history.currentRow()
             worksheet = self.customer.history.getRowContents(row)
-            wid, cid, date, medicalRecord, glassesRecord, priceRecord = self.worksheet.unwrap(worksheet)
+            wid, cid, date, medicalRecord, glassesRecord, priceRecord = \
+                self.worksheet.unwrap(worksheet)
             self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)

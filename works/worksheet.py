@@ -144,6 +144,27 @@ class MedicalRecord(QGroupBox):
         for obj, text in zip(self._edits, contents):
             obj.setText(text)
 
+    def setContentsEx(self, contents):
+        c = contents
+        self.edtSphR.setText(c['sph_r'])
+        self.edtSphL.setText(c['sph_l'])
+        self.edtCylR.setText(c['cyl_r'])
+        self.edtCylL.setText(c['cyl_l'])
+        self.edtAxisR.setText(c['axis_r'])
+        self.edtAxisL.setText(c['axis_l'])
+        self.edtBaseR.setText(c['base_r'])
+        self.edtBaseL.setText(c['base_l'])
+        self.edtBCR.setText(c['bc_r'])
+        self.edtBCL.setText(c['bc_l'])
+        self.edtBCVR.setText(c['bcv_r'])
+        self.edtBCVL.setText(c['bcv_l'])
+        self.edtBCHR.setText(c['bch_r'])
+        self.edtBCHL.setText(c['bch_l'])
+        self.edtAddR.setText(c['add_r'])
+        self.edtAddL.setText(c['add_l'])
+        self.edtPd.setText(c['pd'])
+        self.edtSource.setText(c['source'])
+
     def setEditMode(self, mode):
         stylesheet = hg.EditMode.stylesheetQLineEdit(mode)
         self.setStyleSheet(stylesheet)
@@ -218,6 +239,15 @@ class GlassesRecord(QGroupBox):
         for obj, text in zip(self._edits, contents):
             obj.setText(text)
 
+    def setContentsEx(self, contents):
+        c = contents
+        self.edtSightSeeR.setText(c['eyesight_r'])
+        self.edtSightSeeL.setText(c['eyesight_l'])
+        self.edtLensR.setText(c['lens_r'])
+        self.edtLensL.setText(c['lens_l'])
+        self.edtGlasses.setText(c['frame'])
+        self.edtMemo.setText(c['memo'])
+
     def setEditMode(self, mode):
         stylesheet = hg.EditMode.stylesheetQLineEdit(mode)
         self.setStyleSheet(stylesheet)
@@ -286,6 +316,11 @@ class PriceRecord(QGroupBox):
     def setContents(self, contents):
         for obj, val in zip(self._edits, contents):
             obj.setValue(val)
+
+    def setContentsEx(self, contents):
+        c = contents
+        self.edtLensR.setValue(c['priceLens'])
+        self.edtGlasses.setValue(c['priceFrame'])
 
     def setEditMode(self, mode):
         stylesheet = hg.EditMode.stylesheetQLineEdit(mode)
@@ -421,6 +456,16 @@ class WorkSheet(QGroupBox):
         self.medicalRecord.setContents(medicalRecord)
         self.glassesRecord.setContents(glassesRecord)
         self.priceRecord.setContents(priceRecord)
+
+    def setContentsEx(self, content):
+        c = content
+        self._wid = c['wid']
+        self._cid = c['cid']
+        self.edtAccept.setDateString(c['order_time'])
+        self.edtDeliver.setDateString(c['deliver_time'])
+        self.medicalRecord.setContentsEx(c['medical'])
+        self.glassesRecord.setContentsEx(c['glasses'])
+        self.priceRecord.setContentsEx(c['price'])
 
     def setEditMode(self, mode):
         if not hg.EditMode.inRange(mode): raise ValueError('Invalid edit mode ({})'.format(mode))
