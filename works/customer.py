@@ -258,6 +258,14 @@ class History(QTableWidget):
                '鏡片(L)', '鏡架', 'memo','priceLens', 'priceFrame']
     _isFrozen = False
 
+#    def focusInEvent(self, event):
+#        print("History focus in")
+#        super(History, self).focusInEvent(event)
+
+#    def focusOutEvent(self, event):
+#        print("History focus out")
+#        super(History, self).focusInEvent(event)
+
     def __init__(self):
         super(History, self).__init__()
         self.setFont(hg.FONT)
@@ -330,15 +338,7 @@ class History(QTableWidget):
         Returns:
             tuple: The row content in table header sequence.
         """
-        #record = [self.item(row, idx).text() for idx in range(len(self.HEADERS))]
-        record = []
-        for idx in range(len(self.HEADERS)):
-            item = self.item(row, idx)
-            if item is None:
-                print(f"Item is None -> row = {row}.")
-                return tuple()
-            else:
-                record.append(item.text())
+        record = [self.item(row, idx).text() for idx in range(len(self.HEADERS))]
         record[-2] = int(record[-2])  # lens_price
         record[-1] = int(record[-1])  # frame_price
         return tuple(record)

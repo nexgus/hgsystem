@@ -60,8 +60,6 @@ class MainWidget(QWidget):
         """Be triggered while the (客戶)新增 button is clicked."""
         self._isCustomerAppendMode = True
         self.customer.edit.setEditMode(hg.EditMode.append)
-        # to-do: 應該要先把 row number 存起來, 以避免 user 按取消. 
-        # 請參考 https://github.com/nexgus/hgsystem/issues/2
         self.customer.history.setRowCount(0)
         self.worksheet.setEditMode(hg.EditMode.inhibit)
         self.customer.edit.edtName.setFocus()
@@ -77,9 +75,9 @@ class MainWidget(QWidget):
             self.customer.edit.setContentsEx(customer)
             if self._isCustomerAppendMode:
                 worksheets = self.db.worksheets.find(filter={"cid": customer["_id"]})
-                self.customer.history.setCurrentRow(0)
                 for worksheet in worksheets:
                     self.customer.history.append(worksheet)
+                self.customer.history.setCurrentRow(0)
                 self._isCustomerAppendMode = False
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
@@ -209,6 +207,7 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def worksheetCancel(self):
         beforeEdit = self.worksheet.getBeforeEdit()
+        print(beforeEdit)
         if beforeEdit['wid'] == '':
             self.worksheet.clear()
         elif self.customer.history.rowCount() == 0:
