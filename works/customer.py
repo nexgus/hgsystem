@@ -330,10 +330,60 @@ class History(QTableWidget):
         Returns:
             tuple: The row content in table header sequence.
         """
-        record = [self.item(row, idx).text() for idx in range(len(self.HEADERS))]
+        #record = [self.item(row, idx).text() for idx in range(len(self.HEADERS))]
+        record = []
+        for idx in range(len(self.HEADERS)):
+            item = self.item(row, idx)
+            if item is None:
+                print(f"Item is None -> row = {row}.")
+                return tuple()
+            else:
+                record.append(item.text())
         record[-2] = int(record[-2])  # lens_price
         record[-1] = int(record[-1])  # frame_price
         return tuple(record)
+
+    def getRowContentsEx(self, row):
+        record = self.getRowContents(row)
+        rowContents = {
+            'wid': record[0],
+            'cid': record[1],
+            'order_time': record[2],
+            'deliver_time': record[3],
+            'medical': {
+                'sph_r': record[4],
+                'sph_l': record[5],
+                'cyl_r': record[6],
+                'cyl_l': record[7],
+                'axis_r': record[8],
+                'axis_l': record[9],
+                'base_r': record[10],
+                'base_l': record[11],
+                'bc_r': record[12],
+                'bc_l': record[13],
+                'bcv_r': record[14],
+                'bcv_l': record[15],
+                'bch_r': record[16],
+                'bch_l': record[17],
+                'add_r': record[18],
+                'add_l': record[19],
+                'pd': record[20],
+                'source': record[21],
+            },
+            'glasses': {
+                'eyesight_r': record[22],
+                'eyesight_l': record[23],
+                'lens_r': record[24],
+                'lens_l': record[25],
+                'frame': record[26],
+                'memo': record[27],
+            },
+            'price': {
+                'priceLens': record[28],
+                'priceFrame': record[29],
+            },
+        }
+        return rowContents
 
     def getRowByID(self, wid):
         row = -1

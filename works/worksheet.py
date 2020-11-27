@@ -341,7 +341,6 @@ class WorkSheet(QGroupBox):
         self._cid = ''
 
         txtAcceptDate = QLabel('收件日')
-        #txtAcceptDate.setFixedWidth(50)
         txtAcceptDate.setFont(hg.FONT)
         self.edtAccept = MyDateWidget()
         layoutAccept = QHBoxLayout()
@@ -350,7 +349,6 @@ class WorkSheet(QGroupBox):
         layoutAccept.addStretch()
 
         txtDeliverDate = QLabel('交件日')
-        #txtDeliverDate.setFixedWidth(50)
         txtDeliverDate.setFont(hg.FONT)
         self.edtDeliver = MyDateWidget()
         layoutDeliver = QHBoxLayout()

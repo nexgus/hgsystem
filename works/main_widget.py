@@ -60,6 +60,8 @@ class MainWidget(QWidget):
         """Be triggered while the (客戶)新增 button is clicked."""
         self._isCustomerAppendMode = True
         self.customer.edit.setEditMode(hg.EditMode.append)
+        # to-do: 應該要先把 row number 存起來, 以避免 user 按取消. 
+        # 請參考 https://github.com/nexgus/hgsystem/issues/2
         self.customer.history.setRowCount(0)
         self.worksheet.setEditMode(hg.EditMode.inhibit)
         self.customer.edit.edtName.setFocus()
@@ -82,9 +84,8 @@ class MainWidget(QWidget):
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
         if self.customer.history.rowCount() > 0:
-            wid, cid, date, medicalRecord, glassesRecord, priceRecord = \
-                self.worksheet.unwrap(self.customer.history.getRowContents(0))
-            self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
+            worksheet = self.customer.history.getRowContentsEx(0)
+            self.worksheet.setContentsEx(worksheet)
         if self.customer.edit.getCID() == '':
             self.worksheet.setEditMode(hg.EditMode.inhibit)
         else:
@@ -117,8 +118,6 @@ class MainWidget(QWidget):
             QMessageBox.No)
         if selection == QMessageBox.StandardButton.No: return
 
-        #self.db.removeCustomer(cid)
-        #self.db.removeWorkSheetByCID(cid)
         self.db.customers.delete_one({"_id": cid})
         self.db.worksheets.delete_many({"cid": cid})
 
@@ -195,48 +194,7 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def historyCurrentCellChanged(self, curRow, curCol, prvRow=-1, prvCol=-1):
         if curRow < 0: return
-        #worksheet = self.customer.history.getRowContents(curRow)
-        #wid, cid, date, medicalRecord, glassesRecord, priceRecord = self.worksheet.unwrap(worksheet)
-        #self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
-        record = self.customer.history.getRowContents(curRow)
-        worksheet = {
-            'wid': record[0],
-            'cid': record[1],
-            'order_time': record[2],
-            'deliver_time': record[3],
-            'medical': {
-                'sph_r': record[4],
-                'sph_l': record[5],
-                'cyl_r': record[6],
-                'cyl_l': record[7],
-                'axis_r': record[8],
-                'axis_l': record[9],
-                'base_r': record[10],
-                'base_l': record[11],
-                'bc_r': record[12],
-                'bc_l': record[13],
-                'bcv_r': record[14],
-                'bcv_l': record[15],
-                'bch_r': record[16],
-                'bch_l': record[17],
-                'add_r': record[18],
-                'add_l': record[19],
-                'pd': record[20],
-                'source': record[21],
-            },
-            'glasses': {
-                'eyesight_r': record[22],
-                'eyesight_l': record[23],
-                'lens_r': record[24],
-                'lens_l': record[25],
-                'frame': record[26],
-                'memo': record[27],
-            },
-            'price': {
-                'priceLens': record[28],
-                'priceFrame': record[29],
-            },
-        }
+        worksheet = self.customer.history.getRowContentsEx(curRow)
         self.worksheet.setContentsEx(worksheet)
 
     #-----------------------------------------------------------------------------------------------
@@ -257,10 +215,8 @@ class MainWidget(QWidget):
             self.worksheet.clear()
         else:
             row = self.customer.history.currentRow()
-            worksheet = self.customer.history.getRowContents(row)
-            wid, cid, date, medicalRecord, glassesRecord, priceRecord = \
-                self.worksheet.unwrap(worksheet)
-            self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
+            worksheet = self.customer.history.getRowContentsEx(row)
+            self.worksheet.setContentsEx(worksheet)
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
         self.worksheet.setEditMode(hg.EditMode.none)
@@ -296,9 +252,8 @@ class MainWidget(QWidget):
         else:
             row = self.customer.history.currentRow()
             self.customer.history.tableCurrentCellChanged(row, 0)
-            record = self.customer.history.getRowContents(row)
-            wid, cid, date, medicalRecord, glassesRecord, priceRecord = self.worksheet.unwrap(record)
-            self.worksheet.setContents(wid, cid, date, medicalRecord, glassesRecord, priceRecord)
+            worksheet = self.customer.history.getRowContentsEx(row)
+            self.worksheet.setContentsEx(worksheet)
 
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
