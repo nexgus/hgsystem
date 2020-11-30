@@ -61,13 +61,24 @@ class MainWindow(QMainWindow):
             try:
                 remote_master_id = repo.lookup_reference(f"refs/remotes/origin/{branch}").target
             except KeyError:
-                remote_master_id = repo.lookup_reference(f"refs/remotes/origin/master").target
+                if branch == "main":
+                    branch = "master"
+                    remote_master_id = repo.lookup_reference(f"refs/remotes/origin/master").target
+                else:
+                    raise
             msgbox = QMessageBox()
             merge_result, _ = repo.merge_analysis(remote_master_id)
             if merge_result & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
-                msgbox.setText(f"已為最新版本")
+                msgbox.setText("已為最新版本")
             elif merge_result & pygit2.GIT_MERGE_ANALYSIS_FASTFORWARD:
-                msgbox.setText(f"GIT_MERGE_ANALYSIS_FASTFORWARD\n{merge_result}")
+                repo.checkout_tree(repo.get(remote_master_id))
+                try:
+                    master_ref = repo.lookup_reference(f"refs/heads/{branch}")
+                    master_ref.set_target(remote_master_id)
+                except KeyError:
+                    repo.create_branch(branch, repo.get(remote_master_id))
+                repo.head.set_target(remote_master_id)
+                msgbox.setText("已更新為最新版本 (GIT_MERGE_ANALYSIS_FASTFORWARD)")
             elif merge_result & pygit2.GIT_MERGE_ANALYSIS_NORMAL:
                 msgbox.setText(f"GIT_MERGE_ANALYSIS_NORMAL\n{merge_result}")
             else:
