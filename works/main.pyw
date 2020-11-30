@@ -93,9 +93,6 @@ class MainWindow(QMainWindow):
                 repo.head.set_target(remote_master_id)
                 msgbox.setText("已更新為最新版本 (GIT_MERGE_ANALYSIS_FASTFORWARD)")
                 restart = True
-            elif merge_result & pygit2.GIT_MERGE_ANALYSIS_NORMAL:
-                msgbox.setText(f"GIT_MERGE_ANALYSIS_NORMAL\n{merge_result}")
-                restart = True
             else:
                 msgbox.setText(f"產生不明錯誤:\n{merge_result}")
             msgbox.exec_()

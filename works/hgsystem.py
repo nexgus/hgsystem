@@ -6,7 +6,7 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 VER_MAJOR = 0
 VER_MINOR = 3
 VER_PATCH = 0
-VER_EXTRA = "dev2"
+VER_EXTRA = ""
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
 
 """History
