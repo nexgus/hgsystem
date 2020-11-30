@@ -15,6 +15,8 @@ VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
     2) Add an update tool in main menu.
 0.3.1:
     Set update message box title.
+0.3.2:
+    Change font of the update and about message boxes.
 """
 
 ###################################################################################################

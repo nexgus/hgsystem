@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
     def about(self):
         msgbox = QMessageBox()
         msgbox.setWindowTitle("有關於")
+        msgbox.setFont(hg.FONT)
         msgbox.setText(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
         msgbox.exec_()
 
@@ -77,6 +78,7 @@ class MainWindow(QMainWindow):
             restart = False
             msgbox = QMessageBox()
             msgbox.setWindowTitle("更新結果")
+            msgbox.setFont(hg.FONT)
             merge_result, _ = repo.merge_analysis(remote_master_id)
             if merge_result & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
                 msgbox.setText("已為最新版本\n(未更新)")
