@@ -697,16 +697,11 @@ class Search(QDialog):
         self.cmdSearch.clicked.connect(self.search)
         self.cmdAccept.clicked.connect(self.accept)
         self.cmdCancel.clicked.connect(self.reject)
-        #self.cmdClrName.clicked.connect(self.edtName.clear)
-        #self.cmdClrAddr.clicked.connect(self.edtAddr.clear)
-        #self.cmdClrPhone.clicked.connect(self.edtPhone.clear)
-        #self.cmdClrBirthdate.clicked.connect(self.edtBirthdate.clear)
 
     def search(self):
         self.cmdAccept.setEnabled(False)
         self.table.clearContents()
         self.table.setRowCount(0)
-
         
         filter_ = dict()
         if len(self.edtName.text()) > 0:

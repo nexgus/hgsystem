@@ -36,13 +36,9 @@ def getNameByID(customers, cid):
     return name, error
 
 ####################################################################################################
-bc_list = (
-    "8.50", "8.80", "8.40", "9.0", "S", "M", "L", "B1", "B2", "B3", "Q1", "Q2", "Q3",
-    "TC", "綠散L", "藍L", "-2.75", "-7.50," "-4.25", "-7.00", "-6.50", "-5.25", "-2.50", 
-    "-6.00", "-4.75", "-3.75", "-3.25", "-4.00", "-8.75", "-3.50", "-10.0", "-11.5", "-11.0", 
-    "-8.50", "K2", "S", "Q2", "k2", "HIGH", "M綠", "M藍", "B3", "8.8", "8.5", 
-    "LOW", "ST7", "8.70", "8.6",
-)
+bc_list = ("B1", "B2", "B3", "Q1", "Q2", "Q3", "S", "M", "L", "8.00",  "8.10", "8.30", "8.50", 
+           "8.70", "8.90", "9.00")
+bc_extra_list = ("綠散L", "藍L", "M綠", "M藍")
 
 dbf = DBF("dbf/gdata.DBF", char_decode_errors="ignore")
 total = len(dbf)
@@ -69,9 +65,15 @@ for idx, rec in enumerate(dbf):
     val = rec['RADIAN_LEF'].strip()
     if val in bc_list:
         bc_r = val
+    elif val in bc_extra_list:
+        if "L" in val: bc_r = "L"
+        if "M" in val: bc_r = "M"
     val = rec['RADIAN_RIG'].strip()
     if val in bc_list:
         bc_l = val
+    elif val in bc_extra_list:
+        if "L" in val: bc_l = "L"
+        if "M" in val: bc_l = "M"
 
     if bc_r == "" and bc_l == "": continue
     worksheets.find_one_and_update(

@@ -1,3 +1,4 @@
 dbfread
 pymongo
 PySide2
+pygit2

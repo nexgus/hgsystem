@@ -4,7 +4,7 @@ mongo = MongoClient("localhost", 27017)
 worksheets = mongo.hgsystem.worksheets
 counter = 0
 for worksheet in worksheets.find():
-    print(f"\r{worksheet['_id']}", end="")
+    print(f"\r{worksheet['_id']}          ", end="")
     worksheet['bc_r'] = ""
     worksheet['bc_l'] = ""
     worksheet['eyesight_r'] = worksheet['sight_see_r']

@@ -4,9 +4,18 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 
 ###################################################################################################
 VER_MAJOR = 0
-VER_MINOR = 2
-VER_PATCH = 4
+VER_MINOR = 3
+VER_PATCH = 0
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}"
+
+"""History
+0.3.0:
+    1) Add a tool for extract BC data from original database.
+    2) Add an update tool in main menu.
+"""
+
+###################################################################################################
+
 
 fonts = {
     "新細明體": "PMingLiU",
