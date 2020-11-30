@@ -23,6 +23,12 @@ class MainWindow(QMainWindow):
     def __del__(self):
         self.mongodb.close()
 
+    def about(self):
+        msgbox = QMessageBox()
+        msgbox.setWindowTitle("有關於")
+        msgbox.setText(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
+        msgbox.exec_()
+
     def create_menu(self):
         mainMenu = self.menuBar()
         systemMenu = mainMenu.addMenu("系統")
@@ -30,10 +36,14 @@ class MainWindow(QMainWindow):
         updateAction = QAction("更新", self)
         updateAction.triggered.connect(self.update_app)
 
+        aboutAction = QAction("有關於", self)
+        aboutAction.triggered.connect(self.about)
+
         exitAction = QAction("離開", self)
         exitAction.triggered.connect(self.exit_app)
 
         systemMenu.addAction(updateAction)
+        systemMenu.addAction(aboutAction)
         systemMenu.addAction(exitAction)
 
     def exit_app(self):
