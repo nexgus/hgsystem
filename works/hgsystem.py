@@ -5,7 +5,7 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 ###################################################################################################
 VER_MAJOR = 0
 VER_MINOR = 3
-VER_PATCH = 0
+VER_PATCH = 1
 VER_EXTRA = ""
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
 
@@ -13,6 +13,8 @@ VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
 0.3.0:
     1) Add a tool for extract BC data from original database.
     2) Add an update tool in main menu.
+0.3.1:
+    Set update message box title.
 """
 
 ###################################################################################################

@@ -55,10 +55,6 @@ class MainWindow(QMainWindow):
         dirname = os.path.join(dirname, "..")
         dirname = os.path.abspath(dirname)
 
-        msgbox = QMessageBox()
-        msgbox.setText(f"{type(dirname)} -> {dirname}")
-        msgbox.exec_()
-
         repo = pygit2.Repository(dirname)
         self.git_pull(repo)
 
@@ -80,9 +76,10 @@ class MainWindow(QMainWindow):
 
             restart = False
             msgbox = QMessageBox()
+            msgbox.setWindowTitle("更新結果")
             merge_result, _ = repo.merge_analysis(remote_master_id)
             if merge_result & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
-                msgbox.setText("已為最新版本")
+                msgbox.setText("已為最新版本\n(未更新)")
             elif merge_result & pygit2.GIT_MERGE_ANALYSIS_FASTFORWARD:
                 repo.checkout_tree(repo.get(remote_master_id))
                 try:
@@ -91,7 +88,7 @@ class MainWindow(QMainWindow):
                 except KeyError:
                     repo.create_branch(branch, repo.get(remote_master_id))
                 repo.head.set_target(remote_master_id)
-                msgbox.setText("已更新為最新版本 (GIT_MERGE_ANALYSIS_FASTFORWARD)")
+                msgbox.setText("已更新為最新版本\n(GIT_MERGE_ANALYSIS_FASTFORWARD)")
                 restart = True
             else:
                 msgbox.setText(f"產生不明錯誤:\n{merge_result}")
