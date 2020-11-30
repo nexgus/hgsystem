@@ -2,6 +2,7 @@
 import hgsystem as hg
 import os
 import pygit2
+import sys
 
 from main_widget import MainWidget
 from pymongo import MongoClient
@@ -66,6 +67,8 @@ class MainWindow(QMainWindow):
                     remote_master_id = repo.lookup_reference(f"refs/remotes/origin/master").target
                 else:
                     raise
+
+            restart = False
             msgbox = QMessageBox()
             merge_result, _ = repo.merge_analysis(remote_master_id)
             if merge_result & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
@@ -79,11 +82,15 @@ class MainWindow(QMainWindow):
                     repo.create_branch(branch, repo.get(remote_master_id))
                 repo.head.set_target(remote_master_id)
                 msgbox.setText("已更新為最新版本 (GIT_MERGE_ANALYSIS_FASTFORWARD)")
+                restart = True
             elif merge_result & pygit2.GIT_MERGE_ANALYSIS_NORMAL:
                 msgbox.setText(f"GIT_MERGE_ANALYSIS_NORMAL\n{merge_result}")
+                restart = True
             else:
                 msgbox.setText(f"產生不明錯誤:\n{merge_result}")
-            msgbox.exec_() 
+            msgbox.exec_()
+            if restart:
+                os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
 
 ####################################################################################################
 if __name__ == "__main__":
