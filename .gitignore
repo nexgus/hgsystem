@@ -1,6 +1,7 @@
 .vscode/
 Include/
 Lib/
+logs/
 Scripts/
 tcl/
 works/__pycache__/

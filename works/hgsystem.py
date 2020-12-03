@@ -1,3 +1,6 @@
+import logging
+import os
+
 from datetime import date
 from datetime import datetime
 from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
@@ -5,7 +8,7 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 ###################################################################################################
 VER_MAJOR = 0
 VER_MINOR = 3
-VER_PATCH = 2
+VER_PATCH = 3
 VER_EXTRA = ""
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
 
@@ -17,11 +20,11 @@ VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
     Set update message box title.
 0.3.2:
     Change font of the update and about message boxes.
+0.3.3:
+    Add logging.
 """
 
 ###################################################################################################
-
-
 fonts = {
     "新細明體": "PMingLiU",
     "細明體": "MingLiU",
@@ -38,6 +41,22 @@ FONT = QFont(fonts["微軟雅黑體"], 12, 50)
 YearTaiwan = 0
 YearCommon = 1
 YearNone = 9996
+
+###################################################################################################
+logger = logging.getLogger("hgsystem")
+logger.setLevel(logging.DEBUG)
+
+_logdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(_logdir, exist_ok=True)
+_logfile = os.path.join(_logdir, f"{datetime.now().strftime('%Y%m%d-%H%M%S')}.log")
+#_logfmt = logging.Formatter("%(asctime)s [%(filename)s:%(lineno)d] %(levelname)s - %(message)s")
+_logfmt = logging.Formatter("[%(asctime)s] %(levelname)-5.5s - %(message)s")
+
+_fileHandler = logging.FileHandler(_logfile, encoding="utf-8")
+_fileHandler.setLevel(logging.DEBUG)
+_fileHandler.setFormatter(_logfmt)
+logger.addHandler(_fileHandler)
+logger.info("Start hgsystem.")
 
 ###################################################################################################
 def toROCYear(year):

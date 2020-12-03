@@ -58,6 +58,7 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def customerAppend(self):
         """Be triggered while the (客戶)新增 button is clicked."""
+        hg.logger.debug("Append a new customer.")
         self._isCustomerAppendMode = True
         self.customer.edit.setEditMode(hg.EditMode.append)
         self.customer.history.setRowCount(0)
@@ -70,6 +71,7 @@ class MainWidget(QWidget):
         beforeEdit = self.customer.edit.getBeforeEdit()
         if beforeEdit['cid'] == '':
             self.customer.edit.clear()
+            hg.logger.debug("Cancel customer append.")
         else:
             customer = self.db.customers.find_one({"_id": beforeEdit["cid"]})
             self.customer.edit.setContentsEx(customer)
@@ -79,6 +81,9 @@ class MainWidget(QWidget):
                     self.customer.history.append(worksheet)
                 self.customer.history.setCurrentRow(0)
                 self._isCustomerAppendMode = False
+            cid = self.customer.edit.getCID()
+            name = self.customer.edit.edtName.text().strip()
+            hg.logger.debug(f"Cancel customer modification: {cid}/{name}.")
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
         if self.customer.history.rowCount() > 0:
@@ -93,6 +98,10 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def customerModify(self):
         """Be triggered while the (客戶)修改 button is clicked."""
+        cid = self.customer.edit.getCID()
+        name = self.customer.edit.edtName.text().strip()
+        hg.logger.debug(f"Modify customer data: {cid}/{name}.")
+
         self.customer.edit.setEditMode(hg.EditMode.modify)
         self.customer.history.freeze(True)
         self.worksheet.setEditMode(hg.EditMode.inhibit)
@@ -102,22 +111,24 @@ class MainWidget(QWidget):
     def customerRemove(self):
         """Be triggered while the (客戶)刪除 button is clicked."""
         cid = self.customer.edit.getCID()
+
+        worksheet_count = self.customer.history.rowCount()
+        name = self.customer.edit.edtName.text().strip()
+        birthdate = self.customer.edit.edtBirthdate.dateString()
+        addr = self.customer.edit.edtAddr.text().strip()
         selection = QMessageBox.question(
             self, 
-            '刪除客戶 {}'.format(cid),
-            '確定要刪除該筆資料嗎?\n這會將所有該客戶的紀錄刪除 (共 {} 筆), 無法復原!\n'
-            '姓名: {}\n生日: {}\n地址: {}'.format(
-                self.customer.history.rowCount(),
-                self.customer.edit.edtName.text().strip(),
-                self.customer.edit.edtBirthdate.dateString(),
-                self.customer.edit.edtAddr.text().strip()
-            ),
+            f"刪除客戶 {cid}",
+            f"<font size='+1'><b>確定要刪除該筆資料嗎?<br>這會將所有該客戶的紀錄刪除 "
+            f"(共 {worksheet_count} 筆), 無法復原!<br>姓名: {name}<br>生日: {birthdate}<br>"
+            f"地址: {addr}</b></font>",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No)
         if selection == QMessageBox.StandardButton.No: return
 
-        self.db.customers.delete_one({"_id": cid})
-        self.db.worksheets.delete_many({"cid": cid})
+        result = self.db.customers.delete_one({"_id": cid})
+        result = self.db.worksheets.delete_many({"cid": cid})
+        hg.logger.debug(f"Delete customer {cid}/{name} and {result.deleted_count} worksheet(s).")
 
         self.customer.edit.clear()
         self.customer.history.setRowCount(0)
@@ -130,8 +141,8 @@ class MainWidget(QWidget):
     def customerSave(self):
         data = self.customer.edit.getContents(mergePhoneString=True)
         cid, name, title, birthdate, phones, addr, broker = data
-        if name == '':
-            QMessageBox.critical(self, '輸入內容錯誤', '姓名不得為空白')
+        if name == "":
+            QMessageBox.critical(self, "輸入內容錯誤", "<font size='+1'><b>姓名不得為空白</b></font>")
             self.customer.edit.edtName.setFocus()
             return
 
@@ -147,23 +158,29 @@ class MainWidget(QWidget):
             }
             # to-do: what if fail to write?
             self.db.customers.insert_one(document=document)
-            self.customer.edit.setCID(document["_id"])
+            hg.logger.debug(f"Append customer and save: {document}.")
+
+            self.customer.edit.setCID(document['_id'])
             self.customer.history.setRowCount(0)
             self.customer.edit.setTotalCount(self.db.customers.count_documents({}))
             self._isCustomerAppendMode = False
+
         else:
+            document = {
+                "name": name,
+                "title": title,
+                "birthdate": hg.toPythonDatetime(birthdate),
+                "phones": phones,
+                "addr": addr,
+                "broker": broker,
+            }
             # to-do: what if fail to write?
             self.db.customers.find_one_and_replace(
                 filter={"_id": cid},
-                replacement={
-                    "name": name,
-                    "title": title,
-                    "birthdate": hg.toPythonDatetime(birthdate),
-                    "phones": phones,
-                    "addr": addr,
-                    "broker": broker,
-                }
+                replacement=document,
             )
+            hg.logger.debug(f"Edit customer and save: {document}.")
+
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
         self.worksheet.setEditMode(hg.EditMode.none)
@@ -181,7 +198,7 @@ class MainWidget(QWidget):
             self.customer.edit.setContentsEx(customer)
 
             self.customer.history.setRowCount(0)
-            worksheets = self.db.worksheets.find(filter={"cid":customer["_id"]})
+            worksheets = self.db.worksheets.find(filter={"cid":customer['_id']})
             for worksheet in worksheets:
                 self.customer.history.append(worksheet)
             self.customer.history.setCurrentRow(0)
@@ -197,6 +214,10 @@ class MainWidget(QWidget):
 
     #-----------------------------------------------------------------------------------------------
     def worksheetAppend(self):
+        cid = self.customer.edit.getCID()
+        name = self.customer.edit.edtName.text().strip()
+        hg.logger.debug(f"Append a new worksheet for {cid}/{name}.")
+
         self.customer.edit.setEditMode(hg.EditMode.inhibit)
         self.customer.history.freeze(True)
         self.worksheet.setEditMode(hg.EditMode.append)
@@ -207,15 +228,15 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def worksheetCancel(self):
         beforeEdit = self.worksheet.getBeforeEdit()
-        print(beforeEdit)
-        if beforeEdit['wid'] == '':
+        if beforeEdit['wid'] == '' or self.customer.history.rowCount() == 0:
             self.worksheet.clear()
-        elif self.customer.history.rowCount() == 0:
-            self.worksheet.clear()
+            hg.logger.debug(f"Cancel worksheet append.")
         else:
             row = self.customer.history.currentRow()
             worksheet = self.customer.history.getRowContentsEx(row)
             self.worksheet.setContentsEx(worksheet)
+            hg.logger.debug(f"Cancel worksheet modify.")
+        
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
         self.worksheet.setEditMode(hg.EditMode.none)
@@ -223,6 +244,11 @@ class MainWidget(QWidget):
 
     #-----------------------------------------------------------------------------------------------
     def worksheetModify(self):
+        cid = self.customer.edit.getCID()
+        name = self.customer.edit.edtName.text().strip()
+        wid = self.worksheet.edit.getWID()
+        hg.logger.debug(f"Append a new worksheet for {cid}/{name}/{wid}.")
+
         self.customer.edit.setEditMode(hg.EditMode.inhibit)
         self.customer.history.freeze(True)
         self.worksheet.setEditMode(hg.EditMode.modify)
@@ -232,17 +258,16 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def worksheetRemove(self):
         wid = self.worksheet.getWID()
+        date1 = self.worksheet.edtAccept.dateString()
+        date2 = self.worksheet.edtDeliver.dateString()
         selection = QMessageBox.question(
             self, 
-            '刪除工單 {}'.format(wid),
-            '確定要刪除該筆資料嗎?\n'
-            '收件日: {}\n交件日: {}'.format(self.worksheet.edtAccept.dateString(), 
-                                          self.worksheet.edtDeliver.dateString()),
+            f"刪除工單 {wid}",
+            f"<font size='+1'><b>確定要刪除該筆資料嗎?<br>收件日: {date1}<br>交件日: {date2}",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No)
         if selection == QMessageBox.StandardButton.No: return
 
-        #self.db.removeWorkSheetByWID(wid)
         self.db.worksheets.delete_one({"_id": wid})
         row = self.customer.history.currentRow()
         self.customer.history.removeRow(row)
@@ -253,6 +278,7 @@ class MainWidget(QWidget):
             self.customer.history.tableCurrentCellChanged(row, 0)
             worksheet = self.customer.history.getRowContentsEx(row)
             self.worksheet.setContentsEx(worksheet)
+        hg.logger.debug(f"Delete worksheet {wid}.")
 
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
@@ -267,15 +293,17 @@ class MainWidget(QWidget):
             self.worksheet.edtAccept.edtYear.selectAll()
             return
 
+        name = self.customer.edit.edtName.text().strip()
         if self._isWorksheetAppendMode:
-            doc["_id"] = ObjectId().__str__()
-            doc["cid"] = self.customer.edit.getCID()
+            doc['_id'] = ObjectId().__str__()
+            doc['cid'] = self.customer.edit.getCID()
             self.db.worksheets.insert_one(doc)
-            self.worksheet.setWID(doc["_id"])
-            self.worksheet.setCID(doc["cid"])
+            self.worksheet.setWID(doc['_id'])
+            self.worksheet.setCID(doc['cid'])
             self.customer.history.append(doc)
             self.customer.history.setCurrentRow(self.customer.history.rowCount()-1)
             self._isWorksheetAppendMode = False
+            hg.logger.debug(f"Append and save worksheet {doc['_id']} for {doc['cid']}/{name}")
         else:
             doc_ = deepcopy(doc)
             doc_.pop("_id")
@@ -285,6 +313,8 @@ class MainWidget(QWidget):
             )
             row = self.customer.history.currentRow()
             self.customer.history.setRowItems(row, self.worksheet.wrapEx(doc))
+            hg.logger.debug(f"Append and save worksheet {doc['_id']} for {doc['cid']}/{name}")
+
         self.customer.edit.setEditMode(hg.EditMode.none)
         self.customer.history.freeze(False)
         self.worksheet.setEditMode(hg.EditMode.none)
