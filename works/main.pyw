@@ -168,6 +168,6 @@ if __name__ == "__main__":
 
     app = QApplication([])
     gui = MainWindow(mongo_host=args.host, mongo_port=args.port, test=args.test)
-    #gui.showMaximized()
+    gui.showMaximized()
     gui.show()
     app.exec_()
