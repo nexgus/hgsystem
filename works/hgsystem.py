@@ -7,8 +7,8 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 
 ###################################################################################################
 VER_MAJOR = 0
-VER_MINOR = 3
-VER_PATCH = 3
+VER_MINOR = 4
+VER_PATCH = 0
 VER_EXTRA = ""
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
 
@@ -22,6 +22,8 @@ VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
     Change font of the update and about message boxes.
 0.3.3:
     Add logging.
+0.4.0:
+    Add history search function.
 """
 
 ###################################################################################################

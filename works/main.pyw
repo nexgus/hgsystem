@@ -33,6 +33,9 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "更新結果", 
                 f"<font size='+2'><b>已由 {old_verstr} 更新為 {hg.VER_STRING}</b></font>")
 
+        # Clear search history
+        self.mongodb.hgsystem.search.delete_many(filter={})
+
     def __del__(self):
         self.mongodb.close()
 
@@ -165,6 +168,6 @@ if __name__ == "__main__":
 
     app = QApplication([])
     gui = MainWindow(mongo_host=args.host, mongo_port=args.port, test=args.test)
-    gui.showMaximized()
+    #gui.showMaximized()
     gui.show()
     app.exec_()

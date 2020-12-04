@@ -654,6 +654,11 @@ class Search(QDialog):
         self.edtName = MyLineEdit()
         self.edtAddr = QLineEdit()
         self.cmdSearch = QPushButton('(&F) 搜尋')
+        self.cmdHistory = QPushButton('(&H) 記錄')
+
+        layoutH = QHBoxLayout()
+        layoutH.addWidget(self.cmdSearch)
+        layoutH.addWidget(self.cmdHistory)
 
         layoutFilter = QGridLayout()
         layoutFilter.addWidget(txtPhone,             0, 0)
@@ -664,7 +669,7 @@ class Search(QDialog):
         layoutFilter.addWidget(self.edtBirthdate,    1, 1, 1, 2)
         layoutFilter.addWidget(self.edtName,         2, 1, 1, 2)
         layoutFilter.addWidget(self.edtAddr,         3, 1, 1, 2)
-        layoutFilter.addWidget(self.cmdSearch,       5, 0, 1, 3)
+        layoutFilter.addLayout(layoutH,              5, 0, 1, 3)
         layoutFilter.setRowMinimumHeight(4, 20)
 
         self.table = TableWidget()
@@ -694,28 +699,35 @@ class Search(QDialog):
 
     def _create_connection(self):
         self.table.itemDoubleClicked.connect(self.tableDoubleClicked)
-        self.cmdSearch.clicked.connect(self.search)
+        self.cmdSearch.clicked.connect(self.use_new_search)
+        self.cmdHistory.clicked.connect(self.use_history_search)
         self.cmdAccept.clicked.connect(self.accept)
         self.cmdCancel.clicked.connect(self.reject)
 
-    def search(self):
+    def search(self, mode="new"):
         self.cmdAccept.setEnabled(False)
         self.table.clearContents()
         self.table.setRowCount(0)
-        
-        filter_ = dict()
-        if len(self.edtName.text()) > 0:
-            filter_["name"] = {"$regex": f".*{self.edtName.text()}.*"}
-        if len(self.edtAddr.text()) > 0:
-            filter_["addr"] = {"$regex": f".*{self.edtAddr.text()}.*"}
-        if len(self.edtPhone.text()) > 0:
-            filter_["phones"] = {"$regex": f".*{self.edtPhone.text()}.*"}
-        if self.edtBirthdate.dateString() != "0/00/00":
-            filter_["birthdate"] = self.edtBirthdate.date()
-        customers = self._db.customers.find(
-            filter=filter_,
-            allow_disk_use=True
-        )
+
+        if mode == "new":
+            filter_ = dict()
+            if len(self.edtName.text()) > 0:
+                filter_["name"] = {"$regex": f".*{self.edtName.text()}.*"}
+            if len(self.edtAddr.text()) > 0:
+                filter_["addr"] = {"$regex": f".*{self.edtAddr.text()}.*"}
+            if len(self.edtPhone.text()) > 0:
+                filter_["phones"] = {"$regex": f".*{self.edtPhone.text()}.*"}
+            if self.edtBirthdate.dateString() != "0/00/00":
+                filter_["birthdate"] = self.edtBirthdate.date()
+            customers = self._db.customers.find(
+                filter=filter_,
+                allow_disk_use=True
+            )
+        else:
+            customers = self._db.search.find(
+                filter={},
+                allow_disk_use=True
+            )
 
         for customer in customers:
             self.table.append(customer)
@@ -730,6 +742,12 @@ class Search(QDialog):
 
     def tableDoubleClicked(self, item):
         self.cmdAccept.click()
+
+    def use_history_search(self):
+        self.search(mode="history")
+
+    def use_new_search(self):
+        self.search(mode="new")
 
 ##############################################################################################################
 if __name__ == '__main__':

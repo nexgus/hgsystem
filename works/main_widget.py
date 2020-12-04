@@ -195,6 +195,11 @@ class MainWidget(QWidget):
 
             self.worksheet.clear()
             customer = searcher.table.getRowContentsEx(row)
+
+            # Save search history
+            if self.db.search.find_one(filter=customer['_id']) is None:
+                self.db.search.insert_one(customer)
+
             self.customer.edit.setContentsEx(customer)
 
             self.customer.history.setRowCount(0)
