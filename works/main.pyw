@@ -5,9 +5,13 @@ import pygit2
 import subprocess
 import sys
 
+from backup import BackupRestore
 from main_widget import MainWidget
 from pymongo import MongoClient
 from PySide2.QtWidgets import QAction
+from PySide2.QtWidgets import QDialog
+from PySide2.QtWidgets import QFileDialog
+from PySide2.QtWidgets import QHBoxLayout
 from PySide2.QtWidgets import QMainWindow
 from PySide2.QtWidgets import QMessageBox
 
@@ -18,7 +22,7 @@ class MainWindow(QMainWindow):
         self._test = test
         self.setWindowTitle(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
 
-        self.create_menu()
+        self._create_menu()
 
         self.mongodb = MongoClient(mongo_host, mongo_port)
         self.setCentralWidget(MainWidget(self.mongodb))
@@ -39,40 +43,47 @@ class MainWindow(QMainWindow):
     def __del__(self):
         self.mongodb.close()
 
-    def about(self):
-        msgbox = QMessageBox()
-        msgbox.setWindowTitle("有關於")
-        msgbox.setFont(hg.FONT)
-        msgbox.setText(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
-        msgbox.exec_()
-
-    def create_menu(self):
+    def _create_menu(self):
         mainMenu = self.menuBar()
         systemMenu = mainMenu.addMenu("系統")
+        dataMenu = mainMenu.addMenu("資料")
 
         updateAction = QAction("更新", self)
-        updateAction.triggered.connect(self.update_app)
-
-        aboutAction = QAction("有關於", self)
-        aboutAction.triggered.connect(self.about)
-
+        aboutAction = QAction("有關", self)
         exitAction = QAction("離開", self)
-        exitAction.triggered.connect(self.exit_app)
+        
+        backupAction = QAction("備份", self)
+        restoreAction = QAction("還原", self)
 
         systemMenu.addAction(updateAction)
         systemMenu.addAction(aboutAction)
         systemMenu.addAction(exitAction)
 
+        dataMenu.addAction(backupAction)
+        dataMenu.addAction(restoreAction)
+
+        updateAction.triggered.connect(self.update_app)
+        aboutAction.triggered.connect(self.about)
+        exitAction.triggered.connect(self.exit_app)
+
+        backupAction.triggered.connect(self.backup_database)
+        restoreAction.triggered.connect(self.restore_database)
+
+    def about(self):
+        msgbox = QMessageBox()
+        msgbox.setWindowTitle("有關")
+        msgbox.setFont(hg.FONT)
+        msgbox.setText(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
+        msgbox.exec_()
+
+    def backup_database(self):
+        backupdir = str(QFileDialog.getExistingDirectory(self, "選擇備份目錄"))
+        if backupdir == "": return
+        backuper = BackupRestore(backupdir, mode="backup", parent=self)
+        backuper.exec_()
+
     def exit_app(self):
         self.close()
-
-    def update_app(self):
-        dirname = os.path.dirname(os.path.abspath(__file__))
-        dirname = os.path.join(dirname, "..")
-        dirname = os.path.abspath(dirname)
-
-        repo = pygit2.Repository(dirname)
-        self.git_pull(repo)
 
     def git_pull(self, repo, remote_name="origin", branch="main"):
         # pylint: disable=no-member
@@ -151,6 +162,37 @@ class MainWindow(QMainWindow):
 
         hg.logger.info("hgsystem is updated. Restart hgsystem.")
         os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
+
+    def restore_database(self):
+        backupdir = str(QFileDialog.getExistingDirectory(self, "選擇備份目錄"))
+        if backupdir == "": return
+
+        datadir = os.path.join(backupdir, "hgsystem")
+        if os.path.isdir(datadir):
+            backupdir = datadir
+
+        lost = []
+        for collection in ("customers", "worksheets"):
+            for filetype in ("bson", "metadata.json"):
+                filepath = os.path.join(backupdir, f"{collection}.{filetype}")
+                if not os.path.exists(filepath):
+                    lost.append(f"{collection}.{filetype}")
+        if len(lost) > 0:
+            lost = "<br>".join(lost)
+            QMessageBox.critical(self, "無法還原", 
+                f"<font size='+2'><b>檔案不完整, 無法還原. 缺少<br>{lost}</b></font>")
+            return
+
+        restorer = BackupRestore(backupdir, mode="restore", parent=self)
+        restorer.exec_()
+
+    def update_app(self):
+        dirname = os.path.dirname(os.path.abspath(__file__))
+        dirname = os.path.join(dirname, "..")
+        dirname = os.path.abspath(dirname)
+
+        repo = pygit2.Repository(dirname)
+        self.git_pull(repo)
 
 ####################################################################################################
 if __name__ == "__main__":

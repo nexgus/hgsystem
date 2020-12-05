@@ -1,4 +1,6 @@
 .vscode/
+backup/
+hgsystem/
 Include/
 Lib/
 logs/
@@ -8,3 +10,4 @@ works/__pycache__/
 
 works/dbf/*
 LICENSE.txt
+mongo.md
