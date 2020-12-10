@@ -251,7 +251,7 @@ class MainWidget(QWidget):
     def worksheetModify(self):
         cid = self.customer.edit.getCID()
         name = self.customer.edit.edtName.text().strip()
-        wid = self.worksheet.edit.getWID()
+        wid = self.worksheet.getWID()
         hg.logger.debug(f"Append a new worksheet for {cid}/{name}/{wid}.")
 
         self.customer.edit.setEditMode(hg.EditMode.inhibit)

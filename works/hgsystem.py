@@ -8,7 +8,7 @@ from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
 ###################################################################################################
 VER_MAJOR = 0
 VER_MINOR = 5
-VER_PATCH = 0
+VER_PATCH = 1
 VER_EXTRA = ""
 VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
 
@@ -28,6 +28,8 @@ VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
     Maximize GUI.
 0.5.0:
     Add backup/restore function.
+0.5.1:
+    Fix cannnot edit worksheet.
 """
 
 ###################################################################################################
