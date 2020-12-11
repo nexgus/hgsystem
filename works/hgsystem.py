@@ -32,6 +32,8 @@ VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
     Fix cannnot edit worksheet.
 0.5.2:
     Set icon of the windows.
+0.5.3:
+    Set menu icons.
 """
 
 ###################################################################################################

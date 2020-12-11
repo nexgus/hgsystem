@@ -50,12 +50,12 @@ class MainWindow(QMainWindow):
         systemMenu = mainMenu.addMenu("系統")
         dataMenu = mainMenu.addMenu("資料")
 
-        updateAction = QAction("更新", self)
-        aboutAction = QAction("有關", self)
-        exitAction = QAction("離開", self)
+        updateAction = QAction(QIcon("update.png"), "更新", self)
+        aboutAction = QAction(QIcon("about.png"), "有關", self)
+        exitAction = QAction(QIcon("exit.png"), "離開", self)
         
-        backupAction = QAction("備份", self)
-        restoreAction = QAction("還原", self)
+        backupAction = QAction(QIcon("backup.png"), "備份", self)
+        restoreAction = QAction(QIcon("restore.png"), "還原", self)
 
         systemMenu.addAction(updateAction)
         systemMenu.addAction(aboutAction)
