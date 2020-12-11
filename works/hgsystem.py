@@ -30,6 +30,8 @@ VER_STRING = f"{VER_MAJOR}.{VER_MINOR}.{VER_PATCH}{VER_EXTRA}"
     Add backup/restore function.
 0.5.1:
     Fix cannnot edit worksheet.
+0.5.2:
+    Set icon of the windows.
 """
 
 ###################################################################################################

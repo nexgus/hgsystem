@@ -8,6 +8,7 @@ import sys
 from backup import BackupRestore
 from main_widget import MainWidget
 from pymongo import MongoClient
+from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction
 from PySide2.QtWidgets import QDialog
 from PySide2.QtWidgets import QFileDialog
@@ -21,6 +22,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self._test = test
         self.setWindowTitle(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
+        self.setWindowIcon(QIcon("app.png"))
 
         self._create_menu()
 
