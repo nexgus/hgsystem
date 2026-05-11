@@ -231,7 +231,7 @@ class MyDateWidget(QWidget):
         """
         x = date.split("/")
         if date.count("/") == 1:
-            year = hg.YearNone
+            year = 0
             month = int(x[0])
             day = int(x[1])
         else:
