@@ -6,10 +6,10 @@ import worksheet as ws
 from bson.objectid import ObjectId
 from copy import deepcopy
 from datetime import datetime
-from PySide2.QtWidgets import QDialog
-from PySide2.QtWidgets import QMessageBox
-from PySide2.QtWidgets import QVBoxLayout
-from PySide2.QtWidgets import QWidget
+from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QWidget
 
 ####################################################################################################
 class MainWidget(QWidget):
@@ -189,7 +189,7 @@ class MainWidget(QWidget):
     #-----------------------------------------------------------------------------------------------
     def customerSearch(self):
         searcher = cust.Search(self.db, self)
-        if searcher.exec_() == QDialog.Accepted:
+        if searcher.exec() == QDialog.Accepted:
             row = searcher.table.currentRow()
             if row < 0: return
 
@@ -328,10 +328,10 @@ class MainWidget(QWidget):
 ####################################################################################################
 if __name__ == '__main__':
     from pymongo import MongoClient
-    from PySide2.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     mongo = MongoClient("localhost", 27017)
     app = QApplication([])
     gui = MainWidget(mongo)
     gui.show()
-    app.exec_()
+    app.exec()

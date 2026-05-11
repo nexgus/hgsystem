@@ -8,13 +8,13 @@ import sys
 from backup import BackupRestore
 from main_widget import MainWidget
 from pymongo import MongoClient
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import QAction
-from PySide2.QtWidgets import QDialog
-from PySide2.QtWidgets import QFileDialog
-from PySide2.QtWidgets import QHBoxLayout
-from PySide2.QtWidgets import QMainWindow
-from PySide2.QtWidgets import QMessageBox
+from PySide6.QtGui import QAction
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QHBoxLayout
+from PySide6.QtWidgets import QMainWindow
+from PySide6.QtWidgets import QMessageBox
 
 ####################################################################################################
 class MainWindow(QMainWindow):
@@ -76,13 +76,13 @@ class MainWindow(QMainWindow):
         msgbox.setWindowTitle("有關")
         msgbox.setFont(hg.FONT)
         msgbox.setText(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
-        msgbox.exec_()
+        msgbox.exec()
 
     def backup_database(self):
         backupdir = str(QFileDialog.getExistingDirectory(self, "選擇備份目錄"))
         if backupdir == "": return
         backuper = BackupRestore(backupdir, mode="backup", parent=self)
-        backuper.exec_()
+        backuper.exec()
 
     def exit_app(self):
         self.close()
@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
             return
 
         restorer = BackupRestore(backupdir, mode="restore", parent=self)
-        restorer.exec_()
+        restorer.exec()
 
     def update_app(self):
         dirname = os.path.dirname(os.path.abspath(__file__))
@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
 ####################################################################################################
 if __name__ == "__main__":
     import argparse
-    from PySide2.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     parser = argparse.ArgumentParser(
         description="HG System",
@@ -214,4 +214,4 @@ if __name__ == "__main__":
     gui = MainWindow(mongo_host=args.host, mongo_port=args.port, test=args.test)
     gui.showMaximized()
     gui.show()
-    app.exec_()
+    app.exec()

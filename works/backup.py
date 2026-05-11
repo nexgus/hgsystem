@@ -4,13 +4,13 @@ import sys
 import subprocess
 import traceback
 
-from PySide2 import QtCore
-from PySide2.QtWidgets import QDialog
-from PySide2.QtWidgets import QHBoxLayout
-from PySide2.QtWidgets import QProgressBar
-from PySide2.QtWidgets import QPushButton
-from PySide2.QtWidgets import QTextEdit
-from PySide2.QtWidgets import QVBoxLayout
+from PySide6 import QtCore
+from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QHBoxLayout
+from PySide6.QtWidgets import QProgressBar
+from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QTextEdit
+from PySide6.QtWidgets import QVBoxLayout
 
 ####################################################################################################
 class WorkerSignals(QtCore.QObject):
@@ -59,7 +59,7 @@ class Worker(QtCore.QRunnable):
 
 ####################################################################################################
 class BackupRestore(QDialog):
-    """GUI Application using PySide2 widgets"""
+    """GUI Application using PySide6 widgets"""
     def __init__(self, savepath, mode, parent=None):
         super(BackupRestore, self).__init__(parent)
         self._savepath = savepath
@@ -139,8 +139,8 @@ class BackupRestore(QDialog):
 
 ####################################################################################################
 if __name__ == "__main__":
-    from PySide2.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
     app = QApplication([])
     gui = BackupRestore("D:\\", "backup")
     gui.show()
-    app.exec_()
+    app.exec()

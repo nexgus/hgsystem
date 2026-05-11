@@ -3,7 +3,7 @@ import os
 
 from datetime import date
 from datetime import datetime
-from PySide2.QtGui import QFont # pylint: disable=no-name-in-module
+from PySide6.QtGui import QFont # pylint: disable=no-name-in-module
 
 ###################################################################################################
 VER_MAJOR = 0

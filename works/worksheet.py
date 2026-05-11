@@ -1,17 +1,17 @@
 # pylint: disable=no-name-in-module
 import hgsystem as hg
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QDateEdit
-from PySide2.QtWidgets import QGridLayout
-from PySide2.QtWidgets import QGroupBox
-from PySide2.QtWidgets import QHBoxLayout
-from PySide2.QtWidgets import QLabel
-from PySide2.QtWidgets import QLineEdit
-from PySide2.QtWidgets import QPushButton
-from PySide2.QtWidgets import QSpinBox
-from PySide2.QtWidgets import QVBoxLayout
-from PySide2.QtWidgets import QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDateEdit
+from PySide6.QtWidgets import QGridLayout
+from PySide6.QtWidgets import QGroupBox
+from PySide6.QtWidgets import QHBoxLayout
+from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLineEdit
+from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QSpinBox
+from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QWidget
 from widgets import MyDateWidget
 
 #######################################################################################################################
@@ -556,8 +556,8 @@ class WorkSheet(QGroupBox):
 
 #######################################################################################################################
 if __name__ == '__main__':
-    from PySide2.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
     app = QApplication([])
     gui = WorkSheet()
     gui.show()
-    app.exec_()
+    app.exec()

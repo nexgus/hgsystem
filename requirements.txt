@@ -1,4 +1,4 @@
 dbfread
 pymongo
-PySide2
+PySide6
 pygit2
