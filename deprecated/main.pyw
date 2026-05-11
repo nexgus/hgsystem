@@ -16,13 +16,18 @@ from PySide6.QtWidgets import QHBoxLayout
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtWidgets import QMessageBox
 
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+def asset(name):
+    return os.path.join(ASSETS_DIR, name)
+
 ####################################################################################################
 class MainWindow(QMainWindow):
     def __init__(self, mongo_host="localhost", mongo_port=27017, test=False):
         super(MainWindow, self).__init__()
         self._test = test
         self.setWindowTitle(f"豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 ({hg.VER_STRING})")
-        self.setWindowIcon(QIcon("app.png"))
+        self.setWindowIcon(QIcon(asset("app.png")))
 
         self._create_menu()
 
@@ -50,12 +55,12 @@ class MainWindow(QMainWindow):
         systemMenu = mainMenu.addMenu("系統")
         dataMenu = mainMenu.addMenu("資料")
 
-        updateAction = QAction(QIcon("update.png"), "更新", self)
-        aboutAction = QAction(QIcon("about.png"), "有關", self)
-        exitAction = QAction(QIcon("exit.png"), "離開", self)
-        
-        backupAction = QAction(QIcon("backup.png"), "備份", self)
-        restoreAction = QAction(QIcon("restore.png"), "還原", self)
+        updateAction = QAction(QIcon(asset("update.png")), "更新", self)
+        aboutAction = QAction(QIcon(asset("about.png")), "有關", self)
+        exitAction = QAction(QIcon(asset("exit.png")), "離開", self)
+
+        backupAction = QAction(QIcon(asset("backup.png")), "備份", self)
+        restoreAction = QAction(QIcon(asset("restore.png")), "還原", self)
 
         systemMenu.addAction(updateAction)
         systemMenu.addAction(aboutAction)
