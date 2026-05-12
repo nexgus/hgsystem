@@ -1,6 +1,5 @@
 """Reusable Qt widgets shared by multiple views."""
 from datetime import datetime
-from typing import Optional
 
 from PySide6.QtCore import QDate, QEvent, Qt, Signal
 from PySide6.QtWidgets import (
@@ -25,7 +24,8 @@ from .style import FONT, lineedit_stylesheet
 class MyLineEdit(QLineEdit):
     """QLineEdit that swallows the Enter key (so Return triggers focus moves)."""
 
-    def event(self, event):
+    def event(self, event: QEvent) -> bool:
+        """攔截 Enter (數字鍵盤上的 Enter) 不讓父類別處理, 以便 Return 觸發焦點移動."""
         if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Enter:
             return True
         return super().event(event)
@@ -37,7 +37,8 @@ class MySpinBox(QSpinBox):
 
     focusOut = Signal()
 
-    def focusOutEvent(self, event):
+    def focusOutEvent(self, event) -> None:
+        """離焦時補發 ``focusOut`` 訊號 (Qt 內建只有事件, 沒有對外訊號)."""
         super().focusOutEvent(event)
         self.focusOut.emit()
 
@@ -48,9 +49,16 @@ class MyDateWidget(QWidget):
     Year 0 means "no year known" (stored as YEAR_NONE in MongoDB).
     """
 
-    DAYS_PER_MONTH = [31, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    DAYS_PER_MONTH: list[int] = [31, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-    def __init__(self, year: int = 0, month: int = 0, day: int = 0):
+    def __init__(self, year: int = 0, month: int = 0, day: int = 0) -> None:
+        """建立 ROC 日期輸入元件並指定初值.
+
+        Arg(s):
+            year: 民國年 (0 代表年份未知).
+            month: 月份 (0 代表未填).
+            day: 日 (0 代表未填).
+        """
         super().__init__()
         self.setFont(FONT)
 
@@ -99,6 +107,15 @@ class MyDateWidget(QWidget):
         self.edtYear.focusOut.connect(self._on_month_changed)
 
     def _refresh_day_items(self, year: int, month: int, requested_day: int) -> None:
+        """依年 / 月重算當月天數 (含閏年 2 月), 重建日下拉選單.
+
+        年份為 0 (未知) 時保守視為閏年 (29 天).
+
+        Arg(s):
+            year: 民國年.
+            month: 月份.
+            requested_day: 希望選中的日; 超出當月天數時取最大值.
+        """
         days = self.DAYS_PER_MONTH[month]
         if days == 28:
             common_year = to_common_year(year) if year != 0 else YEAR_NONE
@@ -109,18 +126,24 @@ class MyDateWidget(QWidget):
             self.edtDay.addItem(str(x))
         self.edtDay.setCurrentIndex(min(requested_day, days))
 
-    def _on_month_changed(self, *_):
+    def _on_month_changed(self, *_: object) -> None:
+        """月份變更或年離焦時重算日下拉選單."""
         year = self.edtYear.value()
         month = self.edtMonth.currentIndex()
         day = self.edtDay.currentIndex()
         self._refresh_day_items(year, month, day)
 
     def clear(self) -> None:
+        """歸零年 / 月 / 日."""
         self.edtYear.setValue(0)
         self.edtMonth.setCurrentIndex(0)
         self.edtDay.setCurrentIndex(0)
 
-    def date(self) -> Optional[datetime]:
+    def date(self) -> datetime | None:
+        """將欄位轉為 ``datetime``; 三欄全 0 視為未填, 回 ``None``.
+
+        年填 0 而月日有值時, 年份以 ``YEAR_NONE`` 哨兵填入.
+        """
         year = self.edtYear.value()
         month = self.edtMonth.currentIndex()
         day = self.edtDay.currentIndex()
@@ -133,14 +156,17 @@ class MyDateWidget(QWidget):
         return datetime(year, month, day)
 
     def date_string(self) -> str:
+        """以 ``YYY/MM/DD`` 或 ``MM/DD`` 形式回傳當前日期."""
         return to_roc_date_string(self.date())
 
     def set_date(self, year: int = 0, month: int = 0, day: int = 0) -> None:
+        """直接以 ROC 年 / 月 / 日設定欄位."""
         self.edtYear.setValue(year)
         self.edtMonth.setCurrentIndex(month)
         self.edtDay.setCurrentIndex(day)
 
     def set_date_string(self, date: str) -> None:
+        """以 ``YYY/MM/DD`` (或 ``MM/DD``) 字串設定欄位; 格式不符時 no-op."""
         parts = date.split("/")
         if len(parts) == 2:
             self.set_date(0, int(parts[0]), int(parts[1]))
@@ -148,6 +174,7 @@ class MyDateWidget(QWidget):
             self.set_date(int(parts[0]), int(parts[1]), int(parts[2]))
 
     def set_edit_mode(self, mode: EditMode) -> None:
+        """依編輯模式切換三欄的可編輯性與內嵌 lineEdit 的文字顏色."""
         sheet = lineedit_stylesheet(mode)
         for obj in (self.edtYear, self.edtMonth, self.edtDay):
             obj.setEnabled(is_editable(mode))

@@ -1,6 +1,4 @@
 """Worksheet panel: prescription form + glasses + price + actions."""
-from typing import Optional
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QGridLayout,
@@ -23,7 +21,8 @@ from .widgets import MyDateWidget
 class MedicalRecordPanel(QGroupBox):
     """Prescription fields (SPH/CYL/AXIS/BASE/BC/BC.V/BC.H/ADD per eye + PD + 來源)."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """建立處方箋欄位, 排版並設定 tab order."""
         super().__init__(parent)
         self.setFont(FONT)
         self.setTitle("處方箋")
@@ -116,10 +115,12 @@ class MedicalRecordPanel(QGroupBox):
         )
 
     def clear(self) -> None:
+        """清空所有處方欄位."""
         for edt in self._editable_widgets:
             edt.clear()
 
     def fill(self, ws: Worksheet) -> None:
+        """將 ``ws`` 的處方欄位填入畫面."""
         self.edtSphR.setText(ws.sph_r)
         self.edtSphL.setText(ws.sph_l)
         self.edtCylR.setText(ws.cyl_r)
@@ -140,6 +141,7 @@ class MedicalRecordPanel(QGroupBox):
         self.edtSource.setText(ws.source)
 
     def apply_to(self, ws: Worksheet) -> None:
+        """將畫面上的處方欄位寫回 ``ws`` (各欄位 ``strip()``)."""
         ws.sph_r = self.edtSphR.text().strip()
         ws.sph_l = self.edtSphL.text().strip()
         ws.cyl_r = self.edtCylR.text().strip()
@@ -160,6 +162,7 @@ class MedicalRecordPanel(QGroupBox):
         ws.source = self.edtSource.text().strip()
 
     def set_edit_mode(self, mode: EditMode) -> None:
+        """依編輯模式切換欄位可編輯性與樣式 (文字色)."""
         self.setStyleSheet(lineedit_stylesheet(mode))
         for edt in self._editable_widgets:
             edt.setEnabled(is_editable(mode))
@@ -168,7 +171,8 @@ class MedicalRecordPanel(QGroupBox):
 class GlassesRecordPanel(QGroupBox):
     """Glasses-side fields: 視力 / 鏡片 / 鏡架 / 備註."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """建立眼鏡欄位與排版."""
         super().__init__(parent)
         self.setFont(FONT)
         self.setTitle("眼鏡資料")
@@ -221,10 +225,12 @@ class GlassesRecordPanel(QGroupBox):
         )
 
     def clear(self) -> None:
+        """清空眼鏡欄位."""
         for edt in self._editable_widgets:
             edt.clear()
 
     def fill(self, ws: Worksheet) -> None:
+        """將 ``ws`` 的眼鏡欄位填入畫面."""
         self.edtSightR.setText(ws.eyesight_r)
         self.edtSightL.setText(ws.eyesight_l)
         self.edtLensR.setText(ws.lens_r)
@@ -233,6 +239,7 @@ class GlassesRecordPanel(QGroupBox):
         self.edtMemo.setText(ws.memo)
 
     def apply_to(self, ws: Worksheet) -> None:
+        """將畫面上的眼鏡欄位寫回 ``ws``."""
         ws.eyesight_r = self.edtSightR.text().strip()
         ws.eyesight_l = self.edtSightL.text().strip()
         ws.lens_r = self.edtLensR.text().strip()
@@ -241,13 +248,17 @@ class GlassesRecordPanel(QGroupBox):
         ws.memo = self.edtMemo.text().strip()
 
     def set_edit_mode(self, mode: EditMode) -> None:
+        """依編輯模式切換欄位可編輯性與樣式."""
         self.setStyleSheet(lineedit_stylesheet(mode))
         for edt in self._editable_widgets:
             edt.setEnabled(is_editable(mode))
 
 
 class PriceRecordPanel(QGroupBox):
-    def __init__(self, parent: Optional[QWidget] = None):
+    """金額面板: 鏡片 / 鏡架 / 合計 (合計即時加總, 唯讀)."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """建立金額欄位並連線即時加總."""
         super().__init__(parent)
         self.setFont(FONT)
         self.setTitle("金額")
@@ -281,22 +292,27 @@ class PriceRecordPanel(QGroupBox):
         self.edtFrame.valueChanged.connect(self._recompute)
         self._recompute()
 
-    def _recompute(self, *_) -> None:
+    def _recompute(self, *_: object) -> None:
+        """重新計算合計金額 (鏡片 + 鏡架)."""
         self.edtTotal.setText(str(self.edtLens.value() + self.edtFrame.value()))
 
     def clear(self) -> None:
+        """金額歸零."""
         self.edtLens.setValue(0)
         self.edtFrame.setValue(0)
 
     def fill(self, ws: Worksheet) -> None:
+        """以 ``ws`` 的價格填入欄位."""
         self.edtLens.setValue(ws.lens_price)
         self.edtFrame.setValue(ws.frame_price)
 
     def apply_to(self, ws: Worksheet) -> None:
+        """將畫面金額寫回 ``ws``."""
         ws.lens_price = self.edtLens.value()
         ws.frame_price = self.edtFrame.value()
 
     def set_edit_mode(self, mode: EditMode) -> None:
+        """依編輯模式切換 SpinBox 的可編輯性與樣式 (含內嵌 lineEdit)."""
         sheet = lineedit_stylesheet(mode)
         self.setStyleSheet(sheet)
         for sp in (self.edtLens, self.edtFrame):
@@ -308,7 +324,13 @@ class PriceRecordPanel(QGroupBox):
 class WorksheetView(QGroupBox):
     """Top-level worksheet panel: dates + Medical/Glasses/Price + actions."""
 
-    def __init__(self, vm: WorksheetViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, vm: WorksheetViewModel, parent: QWidget | None = None) -> None:
+        """組裝日期 / 處方 / 眼鏡 / 金額 + 動作按鈕, 並與 view-model 綁定.
+
+        Arg(s):
+            vm: 工單 view-model.
+            parent: Qt parent.
+        """
         super().__init__(parent)
         self.setFont(FONT)
         self.setTitle("配鏡資料")
@@ -368,7 +390,8 @@ class WorksheetView(QGroupBox):
         self._apply_mode(EditMode.INHIBIT)
 
     # ---- VM → view --------------------------------------------------------
-    def _apply_current(self, ws: Optional[Worksheet]) -> None:
+    def _apply_current(self, ws: Worksheet | None) -> None:
+        """填入當前工單的所有欄位; ``None`` 時清空."""
         if ws is None:
             self.edtAccept.clear()
             self.edtDeliver.clear()
@@ -384,9 +407,11 @@ class WorksheetView(QGroupBox):
         self.price.fill(ws)
 
     def _apply_mode_int(self, mode: int) -> None:
+        """Qt 訊號的整數 mode 轉成 ``EditMode`` 後分派."""
         self._apply_mode(EditMode(mode))
 
     def _apply_mode(self, mode: EditMode) -> None:
+        """依編輯模式切換按鈕可用性 / 子面板樣式 / 焦點."""
         editing = is_editable(mode)
         has_current = self._vm.current is not None
 
@@ -419,16 +444,20 @@ class WorksheetView(QGroupBox):
 
     # ---- view → VM --------------------------------------------------------
     def _on_append_clicked(self) -> None:
+        """新增按鈕: 通知 view-model 進入 APPEND 模式."""
         self._vm.start_append()
 
     def _on_modify_clicked(self) -> None:
+        """修改按鈕: 通知 view-model 進入 MODIFY 模式."""
         self._vm.start_modify()
 
     def _on_save_clicked(self) -> None:
+        """儲存按鈕: 蒐集草稿並送交 view-model 儲存."""
         draft = self._collect()
         self._vm.save(draft)
 
     def _collect(self) -> Worksheet:
+        """蒐集表單欄位組成 ``Worksheet`` 草稿 (沿用既有 ``id`` / ``cid``)."""
         ws = Worksheet(
             id=self._vm.current.id if self._vm.current else "",
             cid=self._vm.current.cid if self._vm.current else "",

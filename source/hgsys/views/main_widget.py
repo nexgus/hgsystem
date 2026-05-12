@@ -1,6 +1,4 @@
 """Composes the customer panel above the worksheet panel."""
-from typing import Optional
-
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from ..viewmodels.main import MainViewModel
@@ -9,7 +7,15 @@ from .worksheet import WorksheetView
 
 
 class MainWidget(QWidget):
-    def __init__(self, vm: MainViewModel, parent: Optional[QWidget] = None):
+    """主視窗的中央 widget: 上半客戶面板, 下半工單面板."""
+
+    def __init__(self, vm: MainViewModel, parent: QWidget | None = None) -> None:
+        """組好兩塊面板並排版.
+
+        Arg(s):
+            vm: 已建立的 ``MainViewModel``.
+            parent: Qt parent.
+        """
         super().__init__(parent)
         self._vm = vm
 
@@ -27,6 +33,7 @@ class MainWidget(QWidget):
         vm.customer.totalCountChanged.connect(self._set_initial_focus)
 
     def _set_initial_focus(self, total: int) -> None:
+        """資料庫有客戶時將初始焦點放在搜尋, 否則放在新增 (只執行一次)."""
         edit = self.customer.edit
         if total > 0:
             edit.cmdSearch.setFocus()

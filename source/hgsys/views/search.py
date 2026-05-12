@@ -1,7 +1,5 @@
 """Search dialog: filter customers + history-based search."""
-from typing import Optional
-
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -27,10 +25,16 @@ from .widgets import MyDateWidget, MyLineEdit
 
 
 class CustomerResultsTable(QTableWidget):
-    HEADERS = ["cid", "姓名", "title", "生日", "電話", "住址", "broker"]
-    HIDDEN_COLS = ("cid", "title", "broker")
+    """搜尋結果表格 (僅展示, 不可編輯).
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    ``HIDDEN_COLS`` 為儲存了但不顯示給使用者的欄位 (例如內部 id).
+    """
+
+    HEADERS: list[str] = ["cid", "姓名", "title", "生日", "電話", "住址", "broker"]
+    HIDDEN_COLS: tuple[str, ...] = ("cid", "title", "broker")
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """建立表頭並隱藏內部欄位."""
         super().__init__(parent)
         self.setFont(FONT)
         self._results: list[Customer] = []
@@ -49,18 +53,21 @@ class CustomerResultsTable(QTableWidget):
         self.currentCellChanged.connect(self._on_current_cell_changed)
 
     def set_results(self, customers: list[Customer]) -> None:
+        """以 ``customers`` 重建整張表格."""
         self._results = customers
         self.setRowCount(0)
         for c in customers:
             self._append(c)
 
-    def selected_customer(self) -> Optional[Customer]:
+    def selected_customer(self) -> Customer | None:
+        """回傳當前選取列對應的 ``Customer``; 無選取時為 ``None``."""
         row = self.currentRow()
         if 0 <= row < len(self._results):
             return self._results[row]
         return None
 
     def _append(self, c: Customer) -> None:
+        """在表尾新增一列, 對應 ``c`` 的欄位."""
         row = self.rowCount()
         self.insertRow(row)
         values = [
@@ -71,13 +78,15 @@ class CustomerResultsTable(QTableWidget):
         for col, value in enumerate(values):
             self.setItem(row, col, QTableWidgetItem(value))
 
-    def _on_current_cell_changed(self, cur_row, _cc, prv_row, _pc) -> None:
+    def _on_current_cell_changed(self, cur_row: int, _cc: int, prv_row: int, _pc: int) -> None:
+        """切換選取時更新前後列的反白."""
         if prv_row > -1:
             self._highlight(prv_row, False)
         if cur_row > -1:
             self._highlight(cur_row, True)
 
     def _highlight(self, row: int, on: bool) -> None:
+        """切換指定列的反白色塊."""
         if row < 0:
             return
         fg = QColor("white") if on else QColor("black")
@@ -93,7 +102,13 @@ class CustomerResultsTable(QTableWidget):
 class SearchDialog(QDialog):
     """Modal: filter by phone/birthdate/name/addr, or browse search history."""
 
-    def __init__(self, vm: SearchViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, vm: SearchViewModel, parent: QWidget | None = None) -> None:
+        """建立搜尋對話框 (條件區 + 結果表 + 確定 / 取消).
+
+        Arg(s):
+            vm: 搜尋 view-model.
+            parent: Qt parent.
+        """
         super().__init__(parent)
         self.setFont(FONT)
         self._vm = vm
@@ -157,10 +172,12 @@ class SearchDialog(QDialog):
 
         self._vm.resultsChanged.connect(self._on_results)
 
-    def selected_customer(self) -> Optional[Customer]:
+    def selected_customer(self) -> Customer | None:
+        """回傳對話框中被選取的客戶 (供外層 ``QDialog.Accepted`` 後讀取)."""
         return self.table.selected_customer()
 
     def _on_search_clicked(self) -> None:
+        """搜尋按鈕: 收集條件交給 view-model 執行查詢."""
         birthdate = self.edtBirthdate.date()
         self._vm.search_new(
             name=self.edtName.text().strip(),
@@ -170,9 +187,11 @@ class SearchDialog(QDialog):
         )
 
     def _on_history_clicked(self) -> None:
+        """記錄按鈕: 改以本次啟動的搜尋歷史作為結果."""
         self._vm.search_history()
 
-    def _on_results(self, customers: list) -> None:
+    def _on_results(self, customers: list[Customer]) -> None:
+        """收到結果: 灌入表格, 有結果時聚焦於表格與啟用「確定」, 否則回到電話欄."""
         self.table.set_results(customers)
         if customers:
             self.table.setCurrentCell(0, 0)

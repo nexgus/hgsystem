@@ -1,11 +1,12 @@
 """Logger setup. Writes a per-launch file to the OS's conventional log directory."""
+
 import logging
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-LOGGER_NAME = "hgsystem"
+LOGGER_NAME: str = "hgsys"
 
 _current_log_file: Path | None = None
 
@@ -14,20 +15,30 @@ class _ExitOnCriticalHandler(logging.Handler):
     """收到 CRITICAL 層級的 log 後以 exit(1) 結束程式."""
 
     def __init__(self) -> None:
+        """建立 handler, 只攔 CRITICAL 以上的紀錄."""
         super().__init__(level=logging.CRITICAL)
 
     def emit(self, record: logging.LogRecord) -> None:
+        """先 flush 所有 handler, 再以 ``exit(1)`` 結束程式."""
         # 讓其他 handler 先完成輸出, 再終止程式
         logging.shutdown()
         sys.exit(1)
 
 
 class PackagePathFilter(logging.Filter):
+    """為 log record 加上 ``relpath`` 屬性 (相對於套件根目錄的路徑).
+
+    DEBUG 格式裡的 ``%(relpath)s`` 依賴此 filter; 套件外的來源檔會 fallback
+    為完整路徑.
+    """
+
     def __init__(self) -> None:
+        """以本檔所在目錄當作套件根來計算 ``relpath``."""
         super().__init__()
         self.pkg_root = Path(__file__).resolve().parent
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
+        """於 record 上補 ``relpath`` 屬性; 永遠回 ``True`` 不過濾任何紀錄."""
         try:
             record.relpath = str(
                 Path(record.pathname).resolve().relative_to(self.pkg_root)
@@ -38,14 +49,21 @@ class PackagePathFilter(logging.Filter):
 
 
 class CustomFormatter(logging.Formatter):
-    grey = "\x1b[38;20m"
-    yellow = "\x1b[33;20m"
-    red = "\x1b[31;20m"
-    green = "\x1b[32;20m"
-    bold_red = "\x1b[31;1m"
-    reset = "\x1b[0m"
-    PLAIN_FMT = "%(asctime)s [%(levelname)-7.7s] %(message)s"
-    DEBUG_FMT = "%(asctime)s [%(levelname)s:%(relpath)s:%(lineno)d] %(message)s"
+    """依層級切換格式與顏色的 formatter.
+
+    INFO / WARNING 用簡潔格式 (``PLAIN_FMT``); DEBUG / ERROR / CRITICAL 額外帶上
+    ``relpath:lineno`` (依賴 ``PackagePathFilter`` 注入的 ``relpath``).
+    ``use_color=False`` 時略過 ANSI escape sequence, 適合 file handler.
+    """
+
+    grey: str = "\x1b[38;20m"
+    yellow: str = "\x1b[33;20m"
+    red: str = "\x1b[31;20m"
+    green: str = "\x1b[32;20m"
+    bold_red: str = "\x1b[31;1m"
+    reset: str = "\x1b[0m"
+    PLAIN_FMT: str = "%(asctime)s [%(levelname)-7.7s] %(message)s"
+    DEBUG_FMT: str = "%(asctime)s [%(levelname)s:%(relpath)s:%(lineno)d] %(message)s"
 
     def __init__(self, use_color: bool = True) -> None:
         """初始化 formatter.
@@ -71,7 +89,7 @@ class CustomFormatter(logging.Formatter):
                 logging.CRITICAL: self.DEBUG_FMT,
             }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         """格式化單筆 log record."""
         log_fmt = self._formats.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
@@ -82,19 +100,19 @@ class CustomFormatter(logging.Formatter):
 def _default_log_dir() -> Path:
     """OS-conventional log directory.
 
-    - Windows: ``%LOCALAPPDATA%\\hgsystem\\logs``
-    - macOS:   ``~/Library/Logs/hgsystem``
-    - other:   ``~/.local/state/hgsystem/logs`` (XDG_STATE_HOME fallback)
+    - Windows: ``%LOCALAPPDATA%\\hgsys\\logs``
+    - macOS:   ``~/Library/Logs/hgsy``
+    - other:   ``~/.local/state/hgsy/logs`` (XDG_STATE_HOME fallback)
     """
     if sys.platform == "win32":
         base = os.environ.get("LOCALAPPDATA")
         root = Path(base) if base else Path.home() / "AppData" / "Local"
-        return root / "hgsystem" / "logs"
+        return root / LOGGER_NAME / "logs"
     if sys.platform == "darwin":
-        return Path.home() / "Library" / "Logs" / "hgsystem"
+        return Path.home() / "Library" / "Logs" / LOGGER_NAME
     state = os.environ.get("XDG_STATE_HOME")
     root = Path(state) if state else Path.home() / ".local" / "state"
-    return root / "hgsystem" / "logs"
+    return root / LOGGER_NAME / "logs"
 
 
 def _next_log_path(log_dir: Path) -> Path:
@@ -117,7 +135,7 @@ def setup_logging(debug: bool = False) -> logging.Logger:
 
     console 層級:
     - 預設 INFO, ``--debug`` 時為 DEBUG
-    file 永遠記錄 DEBUG 以上, 寫入 ``<repo_root>/logs/YYMMDD_NNNN.log``.
+    file 永遠記錄 DEBUG 以上, 寫入 ``<logdir>/logs/YYMMDD_NNNN.log``.
 
     Arg(s):
         debug: 若為 True, console 設為 DEBUG.
@@ -155,7 +173,8 @@ def setup_logging(debug: bool = False) -> logging.Logger:
     logger.addHandler(_ExitOnCriticalHandler())
 
     # 捕獲所有未捕獲的 exception (Python 層)
-    def _excepthook(exc_type, exc_value, exc_tb):
+    def _excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_tb) -> None:
+        """``sys.excepthook``: 將未捕獲例外以 CRITICAL 寫出; ``KeyboardInterrupt`` 走預設處理."""
         if issubclass(exc_type, KeyboardInterrupt):
             if sys.stderr is not None:
                 sys.__excepthook__(exc_type, exc_value, exc_tb)

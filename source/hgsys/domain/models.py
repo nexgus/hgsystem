@@ -1,21 +1,26 @@
 """Domain models. Pure Python — no Qt, no Mongo."""
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
 class Customer:
+    """客戶資料.
+
+    ``phones`` 以 ``;`` 分隔最多 4 組電話, 為相容歷史存檔保持原始字串型態.
+    """
+
     id: str = ""
     name: str = ""
     title: str = ""
-    birthdate: Optional[datetime] = None
+    birthdate: datetime | None = None
     phones: str = ""  # ';'-separated raw string, as stored historically
     addr: str = ""
     broker: str = ""
 
     @classmethod
     def from_doc(cls, doc: dict) -> "Customer":
+        """由 MongoDB document 還原為 ``Customer``."""
         return cls(
             id=doc.get("_id", ""),
             name=doc.get("name", ""),
@@ -27,6 +32,14 @@ class Customer:
         )
 
     def to_doc(self, include_id: bool = True) -> dict:
+        """序列化為 MongoDB document.
+
+        Arg(s):
+            include_id: 是否輸出 ``_id`` 欄位; 用於 ``replace`` 時設為 False 以避免不可改動的鍵.
+
+        Return(s):
+            可直接傳給 pymongo 的 dict.
+        """
         doc = {
             "name": self.name,
             "title": self.title,
@@ -40,6 +53,7 @@ class Customer:
         return doc
 
     def phone_list(self) -> list[str]:
+        """將 ``phones`` 切為 4 格電話列表 (不足者補空字串)."""
         parts = self.phones.split(";") if self.phones else []
         while len(parts) < 4:
             parts.append("")
@@ -48,10 +62,17 @@ class Customer:
 
 @dataclass
 class Worksheet:
+    """配鏡工單.
+
+    ``cid`` 為對應 ``Customer._id`` 的外鍵; ``order_time`` / ``deliver_time`` 為
+    收件 / 交件日, 處方 (SPH/CYL/AXIS/BASE/BC/BC.V/BC.H/ADD/PD) 與眼鏡 / 價格欄位
+    皆以歷史相容的字串或整數型態儲存.
+    """
+
     id: str = ""
     cid: str = ""
-    order_time: Optional[datetime] = None
-    deliver_time: Optional[datetime] = None
+    order_time: datetime | None = None
+    deliver_time: datetime | None = None
     sph_r: str = ""
     sph_l: str = ""
     cyl_r: str = ""
@@ -81,6 +102,7 @@ class Worksheet:
 
     @classmethod
     def from_doc(cls, doc: dict) -> "Worksheet":
+        """由 MongoDB document 還原為 ``Worksheet`` (價格欄位以 0 為 fallback)."""
         return cls(
             id=doc.get("_id", ""),
             cid=doc.get("cid", ""),
@@ -115,6 +137,11 @@ class Worksheet:
         )
 
     def to_doc(self, include_id: bool = True) -> dict:
+        """序列化為 MongoDB document, 將 ``id`` 欄位改名為 ``_id``.
+
+        Arg(s):
+            include_id: 是否輸出 ``_id`` 欄位; ``replace`` 時設為 False.
+        """
         doc = asdict(self)
         doc["_id"] = doc.pop("id")
         if not include_id:

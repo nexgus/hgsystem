@@ -11,6 +11,7 @@ from .views.main_window import MainWindow
 
 
 def main() -> None:
+    """應用程式進入點: 解析 CLI 旗標, 建立 Qt app / Mongo / VM / 主視窗並啟動事件迴圈."""
     parser = argparse.ArgumentParser(
         description="HG System",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
