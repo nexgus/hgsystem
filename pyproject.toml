@@ -3,16 +3,12 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hgsystem"
+name = "hgsys"
 description = "豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["version"]
-dependencies = [
-    "pymongo",
-    "PySide6",
-    "pygit2",
-]
+dependencies = ["pymongo", "PySide6", "pygit2"]
 
 [project.scripts]
 hgsystem = "hgsys.__main__:main"
