@@ -7,7 +7,8 @@ import os
 import subprocess
 import sys
 from enum import IntEnum
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 import pygit2  # type: ignore
 
@@ -31,15 +32,14 @@ _MERGE_RESULT_NAMES = {
 }
 
 
-def find_repo_root(start_dir: str) -> str:
-    current = os.path.abspath(start_dir)
+def find_repo_root(start_dir: Union[str, Path]) -> Path:
+    current = Path(start_dir).resolve()
     while True:
-        if os.path.isdir(os.path.join(current, ".git")):
+        if (current / ".git").is_dir():
             return current
-        parent = os.path.dirname(current)
-        if parent == current:
+        if current.parent == current:
             raise FileNotFoundError(f"No git repository found above {start_dir}")
-        current = parent
+        current = current.parent
 
 
 def _resolve_remote_ref(repo, remote_name: str, branch: str):
@@ -52,12 +52,12 @@ def _resolve_remote_ref(repo, remote_name: str, branch: str):
 
 
 def pull_and_install(
-    repo_root: str,
+    repo_root: Union[str, Path],
     remote_name: str = "origin",
     branch: str = "main",
 ) -> tuple[PullResult, Optional[str]]:
     """Returns (result, detail). ``detail`` describes the merge analysis on UNEXPECTED."""
-    repo = pygit2.Repository(repo_root)
+    repo = pygit2.Repository(str(repo_root))
     logger.info(f"Update application: workdir={repo.workdir}")
     for remote in repo.remotes:
         if remote.name != remote_name:
@@ -86,15 +86,15 @@ def pull_and_install(
                 repo.create_branch(branch, repo.get(remote_master_id))
             repo.head.set_target(remote_master_id)
 
-            requirements = os.path.join(repo.workdir, "requirements.txt")
-            if os.path.exists(requirements):
+            requirements = Path(repo.workdir) / "requirements.txt"
+            if requirements.exists():
                 subprocess.check_call(
-                    [sys.executable, "-m", "pip", "install", "-r", requirements]
+                    [sys.executable, "-m", "pip", "install", "-r", str(requirements)]
                 )
             else:
                 # Editable install of the package itself if pyproject.toml is present.
                 subprocess.check_call(
-                    [sys.executable, "-m", "pip", "install", "-e", repo.workdir]
+                    [sys.executable, "-m", "pip", "install", "-e", str(repo.workdir)]
                 )
             return PullResult.FAST_FORWARDED, None
 
@@ -103,10 +103,9 @@ def pull_and_install(
     return PullResult.UNEXPECTED, f"remote '{remote_name}' not found"
 
 
-def restart(version_marker_path: str, version_string: str) -> None:
+def restart(version_marker_path: Union[str, Path], version_string: str) -> None:
     """Write a marker file so the next launch can show 'updated from X to Y',
     then re-exec the running interpreter with the same argv."""
-    with open(version_marker_path, "w") as fp:
-        fp.write(version_string)
+    Path(version_marker_path).write_text(version_string)
     logger.info("hgsystem is updated. Restart hgsystem.")
     os.execl(sys.executable, sys.executable, "-m", "hgsys", *sys.argv[1:])

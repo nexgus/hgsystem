@@ -3,9 +3,9 @@
 Each function spawns the corresponding CLI tool and yields stderr lines so the
 caller (typically a worker thread) can stream progress.
 """
-import os
 import subprocess
-from typing import Iterator
+from pathlib import Path
+from typing import Iterator, Union
 
 DATABASE_NAME = "hgsystem"
 REQUIRED_FILES = (
@@ -23,23 +23,21 @@ def _stream_stderr(command: str) -> Iterator[str]:
         yield raw.decode("utf-8").replace("\n", "").replace("\t", " ")
 
 
-def dump(savepath: str) -> Iterator[str]:
+def dump(savepath: Union[str, Path]) -> Iterator[str]:
     yield from _stream_stderr(f"mongodump -d {DATABASE_NAME} -o {savepath}")
 
 
-def restore(savepath: str) -> Iterator[str]:
+def restore(savepath: Union[str, Path]) -> Iterator[str]:
     yield from _stream_stderr(f"mongorestore -d {DATABASE_NAME} --dir {savepath}")
 
 
-def resolve_restore_dir(chosen: str) -> str:
+def resolve_restore_dir(chosen: Union[str, Path]) -> Path:
     """If the user picked the parent of the dumped folder, descend into it."""
-    nested = os.path.join(chosen, DATABASE_NAME)
-    return nested if os.path.isdir(nested) else chosen
+    chosen_path = Path(chosen)
+    nested = chosen_path / DATABASE_NAME
+    return nested if nested.is_dir() else chosen_path
 
 
-def missing_files(savepath: str) -> list[str]:
-    return [
-        name
-        for name in REQUIRED_FILES
-        if not os.path.exists(os.path.join(savepath, name))
-    ]
+def missing_files(savepath: Union[str, Path]) -> list[str]:
+    base = Path(savepath)
+    return [name for name in REQUIRED_FILES if not (base / name).exists()]

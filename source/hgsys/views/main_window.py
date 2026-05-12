@@ -1,5 +1,5 @@
 """Top-level QMainWindow: menus + central widget + dialog plumbing."""
-import os
+from pathlib import Path
 from typing import Optional
 
 from PySide6.QtGui import QAction, QIcon
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
     # ---- self-update -----------------------------------------------------
     def _update_app(self) -> None:
         try:
-            repo_root = updater.find_repo_root(os.path.dirname(os.path.abspath(__file__)))
+            repo_root = updater.find_repo_root(Path(__file__).resolve().parent)
             result, detail = updater.pull_and_install(repo_root)
         except Exception as ex:  # noqa: BLE001
             logger.exception(ex)
@@ -186,22 +186,15 @@ class MainWindow(QMainWindow):
             )
 
     def _restart(self) -> None:
-        marker = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            UPDATE_MARKER_FILENAME,
-        )
-        updater.restart(os.path.abspath(marker), VER_STRING)
+        marker = (Path(__file__).resolve().parent.parent / UPDATE_MARKER_FILENAME)
+        updater.restart(marker, VER_STRING)
 
     def _maybe_show_update_message(self) -> None:
-        marker = os.path.abspath(os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "..", UPDATE_MARKER_FILENAME,
-        ))
-        if not os.path.isfile(marker):
+        marker = Path(__file__).resolve().parent.parent / UPDATE_MARKER_FILENAME
+        if not marker.is_file():
             return
-        with open(marker, "r") as fp:
-            old_ver = fp.read()
-        os.remove(marker)
+        old_ver = marker.read_text()
+        marker.unlink()
         QMessageBox.information(
             self, "更新結果",
             f"<font size='+2'><b>已由 {old_ver} 更新為 {VER_STRING}</b></font>",

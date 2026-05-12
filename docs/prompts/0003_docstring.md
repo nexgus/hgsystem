@@ -1,0 +1,1 @@
+所有 class/method/func 都要加入 docstring, 風格依照 ~/myproj/cheese.

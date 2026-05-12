@@ -4,31 +4,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A Chinese-language (Traditional Chinese) PySide2 desktop GUI for an optical shop's customer & prescription management system (豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統). Customers and their worksheets (eyeglass / contact-lens prescriptions) are stored in a local MongoDB database `hgsystem` with collections `customers`, `worksheets`, and `search` (search history). The app self-updates by `git pull`-ing this repo and re-execing.
+A Chinese-language (Traditional Chinese) PySide6 desktop GUI for an optical shop's customer & prescription management system (豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統). Customers and their worksheets (eyeglass / contact-lens prescriptions) are stored in a local MongoDB database `hgsystem` with collections `customers`, `worksheets`, and `search` (search history). The app self-updates by `git pull`-ing this repo and re-execing.
 
 ## Repository layout
 
-- **`source/hgsys/`** — **active development.** The rewrite lives here. Currently empty / in-progress; new code goes here.
-- **`deprecated/`** — the prior implementation (formerly `works/`). Kept for reference and for the still-needed parts (data migration scripts, mongodump/mongorestore wrapper). Do **not** add features here — port logic into `source/hgsys/` instead. The architecture notes below describe this legacy codebase so the rewrite can preserve the domain behavior.
+- **`source/hgsys/`** — **active development.** The rewrite (currently `0.6.0`, PySide6-based). Layered MVVM-ish:
+  - `domain/` — pure data types (`models`, `edit_mode`, `dates` — ROC↔Gregorian conversion).
+  - `repository/` — MongoDB access for `customers`, `worksheets`, `search_history`.
+  - `services/` — `backup` (mongodump/restore wrapper), `updater` (self-update via pygit2).
+  - `viewmodels/` — `main`, `customer`, `worksheet`, `search`.
+  - `views/` — Qt widgets/dialogs (`main_window`, `main_widget`, `customer`, `worksheet`, `search`, `backup`, `widgets`, `style`).
+  - `log.py` — `setup_logging(debug)` + `get_logger()`; emits ANSI-colored console output and a per-launch file `YYMMDD_NNNN.log` (NNNN = same-day serial starting at 0001).
+  - `__main__.py` — CLI entry point. Flags: `-H/--host`, `-p/--port`, `-T/--test`, `-d/--debug`.
+  - `assets/` — PNG icons bundled via `pyproject.toml`'s `package-data`.
+- **`deprecated/`** — the prior PySide2 implementation (formerly `works/`). Kept for reference and for the still-needed parts (data migration scripts, mongodump/mongorestore wrapper). Do **not** add features here — port logic into `source/hgsys/` instead. The legacy architecture notes below describe this codebase so the rewrite can preserve the domain behavior.
 
 The MongoDB database name (`hgsystem`) and document shapes (`_id` as stringified `bson.ObjectId`, worksheets carrying customer `_id` as `cid`) must stay compatible — there is live production data and `deprecated/`'s `mongodump`/`mongorestore` backups must keep restoring cleanly into the rewrite.
 
 ## Running
 
-Python is managed via **miniforge3** with a conda environment named `hgsystem`. Activate it before running anything:
+**Python is managed via miniforge3 with a conda environment named `hgsystem`.** All commands below assume `conda activate hgsystem` has been run first; the env supplies the Python interpreter (3.12) and all dependencies listed in `pyproject.toml` (`pymongo`, `PySide6`, `pygit2`). There is no `requirements.txt` — install the package itself in editable mode.
 
 ```bash
 conda activate hgsystem
-pip install -r requirements.txt       # deps: dbfread, pymongo, PySide2, pygit2
+pip install -e .                      # installs hgsystem from pyproject.toml
 
-# Legacy app (until the rewrite is runnable):
+# Rewrite (active):
+python -m hgsys                       # default: MongoDB at localhost:27017
+python -m hgsys -H <host> -p <port>   # custom MongoDB endpoint
+python -m hgsys -T                    # test mode (auto-restart instead of "up to date" dialog on Update)
+python -m hgsys -d                    # DEBUG-level console output
+# (also installed as a console script: `hgsystem` — see [project.scripts] in pyproject.toml)
+
+# Legacy app (for comparison / reference only):
 cd deprecated/
-python main.pyw                       # default: MongoDB at localhost:27017
-python main.pyw -H <host> -p <port>   # custom MongoDB endpoint
-python main.pyw -T                    # test mode (auto-restart instead of "up to date" dialog on Update)
+python main.pyw -H <host> -p <port> -T
 ```
 
-A local `mongod` must be running. `mongodump` / `mongorestore` must be on PATH for the backup/restore menu actions (they are invoked via `subprocess`). Logs are written to `deprecated/logs/<YYYYMMDD-HHMMSS>.log` on every launch of the legacy app.
+A local `mongod` must be running. `mongodump` / `mongorestore` must be on PATH for the backup/restore menu actions (they are invoked via `subprocess`).
+
+**Logs**: the rewrite writes to the OS-conventional location, not the working directory:
+- macOS: `~/Library/Logs/hgsystem/YYMMDD_NNNN.log`
+- Windows: `%LOCALAPPDATA%\hgsystem\logs\YYMMDD_NNNN.log`
+- Linux fallback: `$XDG_STATE_HOME/hgsystem/logs/` (or `~/.local/state/hgsystem/logs/`)
+
+The legacy app still writes to `deprecated/logs/<YYYYMMDD-HHMMSS>.log` on every launch.
 
 There is no test suite, linter config, or build step. `deprecated/runhgsystem.bat` is a Windows convenience wrapper assuming the repo lives at `D:\hgsystem`.
 
@@ -46,7 +66,7 @@ The Qt object tree was the architecture — there was no service / repository la
 
 ## Dates
 
-The domain uses **ROC year** (民國紀年, year - 1911). Year 0 is invalid; year `9996` is the sentinel `YearNone` for "year unknown" (date strings like `MM/DD` with no year). The legacy helpers are in [deprecated/hgsystem.py](deprecated/hgsystem.py:74-109) — `toCommonYear(0)` returns `YearNone`, and `toROCYear` shifts negative results by an extra `-1` to skip the non-existent year 0. The rewrite must keep the same sentinel and the same negative-year shift, otherwise existing stored dates will misround.
+The domain uses **ROC year** (民國紀年, year - 1911). Year 0 is invalid; year `9996` is the sentinel `YearNone` for "year unknown" (date strings like `MM/DD` with no year). The legacy helpers are in [deprecated/hgsystem.py](deprecated/hgsystem.py:74-109) — `toCommonYear(0)` returns `YearNone`, and `toROCYear` shifts negative results by an extra `-1` to skip the non-existent year 0. The rewrite ([source/hgsys/domain/dates.py](source/hgsys/domain/dates.py)) keeps the same sentinel and negative-year shift, otherwise existing stored dates would misround.
 
 ## One-shot migration scripts
 
