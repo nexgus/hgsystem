@@ -1,4 +1,5 @@
 """Composes the customer panel above the worksheet panel."""
+
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from ..viewmodels.main import MainViewModel

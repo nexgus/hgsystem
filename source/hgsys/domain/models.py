@@ -1,4 +1,5 @@
 """Domain models. Pure Python — no Qt, no Mongo."""
+
 from dataclasses import dataclass, asdict
 from datetime import datetime
 

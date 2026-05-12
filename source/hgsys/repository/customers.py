@@ -1,4 +1,5 @@
 """``customers`` collection 的 MongoDB 存取層."""
+
 from bson.objectid import ObjectId
 from pymongo.collection import Collection
 from pymongo.database import Database

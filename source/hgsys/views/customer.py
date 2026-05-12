@@ -1,4 +1,5 @@
 """Customer panel: editable form + worksheet history table."""
+
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
@@ -46,15 +47,23 @@ class CustomerEditPanel(QGroupBox):
         self.cmdSave = QPushButton("(&S) 儲存")
         self.cmdCancel = QPushButton("(&C) 取消")
         for btn in (
-            self.cmdAppend, self.cmdModify, self.cmdRemove,
-            self.cmdSearch, self.cmdSave, self.cmdCancel,
+            self.cmdAppend,
+            self.cmdModify,
+            self.cmdRemove,
+            self.cmdSearch,
+            self.cmdSave,
+            self.cmdCancel,
         ):
             btn.setFont(FONT)
 
         controls = QHBoxLayout()
         for btn in (
-            self.cmdSearch, self.cmdModify, self.cmdSave,
-            self.cmdCancel, self.cmdRemove, self.cmdAppend,
+            self.cmdSearch,
+            self.cmdModify,
+            self.cmdSave,
+            self.cmdCancel,
+            self.cmdRemove,
+            self.cmdAppend,
         ):
             controls.addWidget(btn)
 
@@ -78,8 +87,13 @@ class CustomerEditPanel(QGroupBox):
         self.edtPhone4 = QLineEdit()
         self.edtBroker = QLineEdit()
         for edt in (
-            self.edtName, self.edtTitle, self.edtAddr,
-            self.edtPhone1, self.edtPhone2, self.edtPhone3, self.edtPhone4,
+            self.edtName,
+            self.edtTitle,
+            self.edtAddr,
+            self.edtPhone1,
+            self.edtPhone2,
+            self.edtPhone3,
+            self.edtPhone4,
             self.edtBroker,
         ):
             edt.setFont(FONT)
@@ -110,9 +124,15 @@ class CustomerEditPanel(QGroupBox):
         self.setLayout(outer)
 
         self._editable_widgets = (
-            self.edtName, self.edtTitle, self.edtAddr,
-            self.edtPhone1, self.edtPhone2, self.edtPhone3, self.edtPhone4,
-            self.edtBirthdate, self.edtBroker,
+            self.edtName,
+            self.edtTitle,
+            self.edtAddr,
+            self.edtPhone1,
+            self.edtPhone2,
+            self.edtPhone3,
+            self.edtPhone4,
+            self.edtBirthdate,
+            self.edtBroker,
         )
 
         self._wire_internal()
@@ -249,18 +269,55 @@ class WorksheetHistoryTable(QTableWidget):
     """
 
     HEADERS: list[str] = [
-        "wid", "cid", "收件日", "交件日",
-        "SPH(R)", "SPH(L)", "CYL(R)", "CYL(L)",
-        "AXIS(R)", "AXIS(L)", "BASE(R)", "BASE(L)",
-        "BC(R)", "BC(L)", "BC.V(R)", "BC.V(L)",
-        "BC.H(R)", "BC.H(L)", "ADD(R)", "ADD(L)", "PD", "source",
-        "視力(R)", "視力(L)", "鏡片(R)", "鏡片(L)", "鏡架", "memo",
-        "priceLens", "priceFrame",
+        "wid",
+        "cid",
+        "收件日",
+        "交件日",
+        "SPH(R)",
+        "SPH(L)",
+        "CYL(R)",
+        "CYL(L)",
+        "AXIS(R)",
+        "AXIS(L)",
+        "BASE(R)",
+        "BASE(L)",
+        "BC(R)",
+        "BC(L)",
+        "BC.V(R)",
+        "BC.V(L)",
+        "BC.H(R)",
+        "BC.H(L)",
+        "ADD(R)",
+        "ADD(L)",
+        "PD",
+        "source",
+        "視力(R)",
+        "視力(L)",
+        "鏡片(R)",
+        "鏡片(L)",
+        "鏡架",
+        "memo",
+        "priceLens",
+        "priceFrame",
     ]
     HIDDEN_COLS: tuple[str, ...] = (
-        "cid", "wid", "AXIS(R)", "AXIS(L)", "BASE(R)", "BASE(L)",
-        "BC.V(R)", "BC.V(L)", "BC.H(R)", "BC.H(L)", "ADD(R)", "ADD(L)",
-        "PD", "source", "memo", "priceLens", "priceFrame",
+        "cid",
+        "wid",
+        "AXIS(R)",
+        "AXIS(L)",
+        "BASE(R)",
+        "BASE(L)",
+        "BC.V(R)",
+        "BC.V(L)",
+        "BC.H(R)",
+        "BC.H(L)",
+        "ADD(R)",
+        "ADD(L)",
+        "PD",
+        "source",
+        "memo",
+        "priceLens",
+        "priceFrame",
     )
 
     def __init__(self, vm: WorksheetViewModel, parent: QWidget | None = None) -> None:
@@ -354,23 +411,44 @@ class WorksheetHistoryTable(QTableWidget):
     def _set_row(self, row: int, ws: Worksheet) -> None:
         """將 ``ws`` 各欄位寫入指定列的所有 cell."""
         values = [
-            ws.id, ws.cid,
+            ws.id,
+            ws.cid,
             to_roc_date_string(ws.order_time),
             to_roc_date_string(ws.deliver_time),
-            ws.sph_r, ws.sph_l, ws.cyl_r, ws.cyl_l,
-            ws.axis_r, ws.axis_l, ws.base_r, ws.base_l,
-            ws.bc_r, ws.bc_l, ws.bcv_r, ws.bcv_l,
-            ws.bch_r, ws.bch_l, ws.add_r, ws.add_l,
-            ws.pd, ws.source,
-            ws.eyesight_r, ws.eyesight_l,
-            ws.lens_r, ws.lens_l, ws.frame, ws.memo,
-            str(ws.lens_price), str(ws.frame_price),
+            ws.sph_r,
+            ws.sph_l,
+            ws.cyl_r,
+            ws.cyl_l,
+            ws.axis_r,
+            ws.axis_l,
+            ws.base_r,
+            ws.base_l,
+            ws.bc_r,
+            ws.bc_l,
+            ws.bcv_r,
+            ws.bcv_l,
+            ws.bch_r,
+            ws.bch_l,
+            ws.add_r,
+            ws.add_l,
+            ws.pd,
+            ws.source,
+            ws.eyesight_r,
+            ws.eyesight_l,
+            ws.lens_r,
+            ws.lens_l,
+            ws.frame,
+            ws.memo,
+            str(ws.lens_price),
+            str(ws.frame_price),
         ]
         for col, value in enumerate(values):
             self.setItem(row, col, QTableWidgetItem(value))
 
     # ---- view → VM --------------------------------------------------------
-    def _on_current_cell_changed(self, cur_row: int, _cur_col: int, prv_row: int, _prv_col: int) -> None:
+    def _on_current_cell_changed(
+        self, cur_row: int, _cur_col: int, prv_row: int, _prv_col: int
+    ) -> None:
         """選擇列變更時: 套用色塊, 並通知 view-model 切換 ``current``."""
         if prv_row > -1:
             self._set_row_highlight(prv_row, False)

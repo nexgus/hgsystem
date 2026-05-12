@@ -1,4 +1,5 @@
 """``search`` collection 的 MongoDB 存取層 (本次啟動的搜尋記錄)."""
+
 from pymongo.collection import Collection
 from pymongo.database import Database
 

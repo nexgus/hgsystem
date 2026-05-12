@@ -18,15 +18,17 @@ class WorksheetViewModel(QObject):
     收到有效的 cid 才解鎖.
     """
 
-    currentChanged = Signal(object)      # Optional[Worksheet]
-    editModeChanged = Signal(int)        # EditMode
-    historyChanged = Signal(list)        # list[Worksheet]
+    currentChanged = Signal(object)  # Optional[Worksheet]
+    editModeChanged = Signal(int)  # EditMode
+    historyChanged = Signal(list)  # list[Worksheet]
     historyRowReplaced = Signal(int, object)  # (row, Worksheet)
     historyRowAppended = Signal(object)  # Worksheet
-    historyRowRemoved = Signal(int)      # row
+    historyRowRemoved = Signal(int)  # row
     validationFailed = Signal(str, str)
 
-    def __init__(self, repo: WorksheetRepository, parent: QObject | None = None) -> None:
+    def __init__(
+        self, repo: WorksheetRepository, parent: QObject | None = None
+    ) -> None:
         """以工單 repository 建立 view-model.
 
         Arg(s):
@@ -96,9 +98,7 @@ class WorksheetViewModel(QObject):
             return
         self._snapshot = self._current
         self._mode = EditMode.MODIFY
-        logger.debug(
-            f"Modify worksheet for {self._current.cid}/{self._current.id}."
-        )
+        logger.debug(f"Modify worksheet for {self._current.cid}/{self._current.id}.")
         self.editModeChanged.emit(self._mode)
 
     def cancel_edit(self) -> None:

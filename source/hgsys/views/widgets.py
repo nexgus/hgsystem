@@ -1,4 +1,5 @@
 """Reusable Qt widgets shared by multiple views."""
+
 from datetime import datetime
 
 from PySide6.QtCore import QDate, QEvent, Qt, Signal

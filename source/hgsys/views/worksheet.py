@@ -1,4 +1,5 @@
 """Worksheet panel: prescription form + glasses + price + actions."""
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QGridLayout,
@@ -32,7 +33,18 @@ class MedicalRecordPanel(QGroupBox):
             lbl.setFont(FONT)
         txt_right, txt_left = labels_top
 
-        row_labels_text = ("SPH", "CYL", "AXIS", "BASE", "BC", "BC.V", "BC.H", "ADD", "PD", "來源")
+        row_labels_text = (
+            "SPH",
+            "CYL",
+            "AXIS",
+            "BASE",
+            "BC",
+            "BC.V",
+            "BC.H",
+            "ADD",
+            "PD",
+            "來源",
+        )
         row_labels = [QLabel(t) for t in row_labels_text]
         for lbl in row_labels:
             lbl.setMaximumWidth(50)
@@ -58,10 +70,23 @@ class MedicalRecordPanel(QGroupBox):
         self.edtSource = QLineEdit(parent=self)
 
         for edt in (
-            self.edtSphR, self.edtSphL, self.edtCylR, self.edtCylL,
-            self.edtAxisR, self.edtAxisL, self.edtBaseR, self.edtBaseL,
-            self.edtBCR, self.edtBCL, self.edtBCVR, self.edtBCVL,
-            self.edtBCHR, self.edtBCHL, self.edtAddR, self.edtAddL, self.edtPd,
+            self.edtSphR,
+            self.edtSphL,
+            self.edtCylR,
+            self.edtCylL,
+            self.edtAxisR,
+            self.edtAxisL,
+            self.edtBaseR,
+            self.edtBaseL,
+            self.edtBCR,
+            self.edtBCL,
+            self.edtBCVR,
+            self.edtBCVL,
+            self.edtBCHR,
+            self.edtBCHL,
+            self.edtAddR,
+            self.edtAddL,
+            self.edtPd,
         ):
             edt.setAlignment(Qt.AlignHCenter)
             edt.setFont(FONT)
@@ -107,11 +132,24 @@ class MedicalRecordPanel(QGroupBox):
         self.setLayout(layout)
 
         self._editable_widgets = (
-            self.edtSphR, self.edtSphL, self.edtCylR, self.edtCylL,
-            self.edtAxisR, self.edtAxisL, self.edtBaseR, self.edtBaseL,
-            self.edtBCR, self.edtBCL, self.edtBCVR, self.edtBCVL,
-            self.edtBCHR, self.edtBCHL, self.edtAddR, self.edtAddL,
-            self.edtPd, self.edtSource,
+            self.edtSphR,
+            self.edtSphL,
+            self.edtCylR,
+            self.edtCylL,
+            self.edtAxisR,
+            self.edtAxisL,
+            self.edtBaseR,
+            self.edtBaseL,
+            self.edtBCR,
+            self.edtBCL,
+            self.edtBCVR,
+            self.edtBCVL,
+            self.edtBCHR,
+            self.edtBCHL,
+            self.edtAddR,
+            self.edtAddL,
+            self.edtPd,
+            self.edtSource,
         )
 
     def clear(self) -> None:
@@ -198,9 +236,12 @@ class GlassesRecordPanel(QGroupBox):
         for edt in (self.edtSightR, self.edtSightL):
             edt.setAlignment(Qt.AlignHCenter)
         for edt in (
-            self.edtSightR, self.edtSightL,
-            self.edtLensR, self.edtLensL,
-            self.edtFrame, self.edtMemo,
+            self.edtSightR,
+            self.edtSightL,
+            self.edtLensR,
+            self.edtLensL,
+            self.edtFrame,
+            self.edtMemo,
         ):
             edt.setFont(FONT)
 
@@ -219,9 +260,12 @@ class GlassesRecordPanel(QGroupBox):
         self.setLayout(layout)
 
         self._editable_widgets = (
-            self.edtSightR, self.edtSightL,
-            self.edtLensR, self.edtLensL,
-            self.edtFrame, self.edtMemo,
+            self.edtSightR,
+            self.edtSightL,
+            self.edtLensR,
+            self.edtLensL,
+            self.edtFrame,
+            self.edtMemo,
         )
 
     def clear(self) -> None:
@@ -357,12 +401,22 @@ class WorksheetView(QGroupBox):
         self.cmdRemove = QPushButton("(&D) 刪除")
         self.cmdSave = QPushButton("(&S) 儲存")
         self.cmdCancel = QPushButton("(&C) 取消")
-        for btn in (self.cmdAppend, self.cmdModify, self.cmdRemove,
-                    self.cmdSave, self.cmdCancel):
+        for btn in (
+            self.cmdAppend,
+            self.cmdModify,
+            self.cmdRemove,
+            self.cmdSave,
+            self.cmdCancel,
+        ):
             btn.setFont(FONT)
         controls = QHBoxLayout()
-        for btn in (self.cmdAppend, self.cmdModify, self.cmdSave,
-                    self.cmdCancel, self.cmdRemove):
+        for btn in (
+            self.cmdAppend,
+            self.cmdModify,
+            self.cmdSave,
+            self.cmdCancel,
+            self.cmdRemove,
+        ):
             controls.addWidget(btn)
 
         self.medical = MedicalRecordPanel()
@@ -400,6 +454,7 @@ class WorksheetView(QGroupBox):
             self.price.clear()
             return
         from ..domain.dates import to_roc_date_string
+
         self.edtAccept.set_date_string(to_roc_date_string(ws.order_time))
         self.edtDeliver.set_date_string(to_roc_date_string(ws.deliver_time))
         self.medical.fill(ws)

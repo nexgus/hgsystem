@@ -18,8 +18,8 @@ class CustomerViewModel(QObject):
     並透過訊號通知 view 更新. ``validationFailed`` 由 view 接收後彈窗.
     """
 
-    currentChanged = Signal(object)      # Optional[Customer]
-    editModeChanged = Signal(int)        # EditMode
+    currentChanged = Signal(object)  # Optional[Customer]
+    editModeChanged = Signal(int)  # EditMode
     totalCountChanged = Signal(int)
     validationFailed = Signal(str, str)  # (message, focus_hint)
 

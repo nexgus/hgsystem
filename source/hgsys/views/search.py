@@ -1,4 +1,5 @@
 """Search dialog: filter customers + history-based search."""
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
@@ -71,14 +72,20 @@ class CustomerResultsTable(QTableWidget):
         row = self.rowCount()
         self.insertRow(row)
         values = [
-            c.id, c.name, c.title,
+            c.id,
+            c.name,
+            c.title,
             to_roc_date_string(c.birthdate),
-            c.phones, c.addr, c.broker,
+            c.phones,
+            c.addr,
+            c.broker,
         ]
         for col, value in enumerate(values):
             self.setItem(row, col, QTableWidgetItem(value))
 
-    def _on_current_cell_changed(self, cur_row: int, _cc: int, prv_row: int, _pc: int) -> None:
+    def _on_current_cell_changed(
+        self, cur_row: int, _cc: int, prv_row: int, _pc: int
+    ) -> None:
         """切換選取時更新前後列的反白."""
         if prv_row > -1:
             self._highlight(prv_row, False)

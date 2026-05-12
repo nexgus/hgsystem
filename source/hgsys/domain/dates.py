@@ -3,6 +3,7 @@
 Year 0 is invalid in the ROC calendar. ``YEAR_NONE`` (9996) is the sentinel
 stored in MongoDB when only month/day are known.
 """
+
 from datetime import datetime
 
 YEAR_NONE: int = 9996

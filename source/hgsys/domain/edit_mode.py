@@ -1,4 +1,5 @@
 """編輯模式列舉與配套狀態查詢."""
+
 from enum import IntEnum
 
 

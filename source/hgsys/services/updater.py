@@ -3,6 +3,7 @@
 The legacy app shipped with a 'main → master' fallback because GitHub renamed
 the default branch in late 2020. We preserve that behavior.
 """
+
 import logging
 import os
 import subprocess

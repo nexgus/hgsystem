@@ -22,7 +22,9 @@ class MainViewModel(QObject):
         and the worksheet panel jumps to row 0.
     """
 
-    def __init__(self, mongo_client: MongoClient, parent: QObject | None = None) -> None:
+    def __init__(
+        self, mongo_client: MongoClient, parent: QObject | None = None
+    ) -> None:
         """建立 sub-VM, 串接資料層, 並清空本次啟動的搜尋記錄.
 
         Arg(s):

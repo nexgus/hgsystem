@@ -1,4 +1,5 @@
 """Shared GUI styling: app font, EditMode-driven stylesheet."""
+
 from pathlib import Path
 
 from PySide6.QtGui import QFont

@@ -173,7 +173,9 @@ def setup_logging(debug: bool = False) -> logging.Logger:
     logger.addHandler(_ExitOnCriticalHandler())
 
     # 捕獲所有未捕獲的 exception (Python 層)
-    def _excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_tb) -> None:
+    def _excepthook(
+        exc_type: type[BaseException], exc_value: BaseException, exc_tb
+    ) -> None:
         """``sys.excepthook``: 將未捕獲例外以 CRITICAL 寫出; ``KeyboardInterrupt`` 走預設處理."""
         if issubclass(exc_type, KeyboardInterrupt):
             if sys.stderr is not None:

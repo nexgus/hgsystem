@@ -1,5 +1,6 @@
 """Backup / restore dialog. Spawns mongodump/mongorestore in a worker thread
 and streams stderr lines to a QTextEdit."""
+
 import sys
 import traceback
 from collections.abc import Callable

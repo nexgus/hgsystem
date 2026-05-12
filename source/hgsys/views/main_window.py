@@ -1,4 +1,5 @@
 """Top-level QMainWindow: menus + central widget + dialog plumbing."""
+
 import logging
 from pathlib import Path
 
@@ -33,7 +34,9 @@ class MainWindow(QMainWindow):
     讓底下的面板維持純 UI / view-model 邏輯.
     """
 
-    def __init__(self, vm: MainViewModel, test_mode: bool = False, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, vm: MainViewModel, test_mode: bool = False, parent: QWidget | None = None
+    ) -> None:
         """建立主視窗.
 
         Arg(s):
@@ -176,7 +179,8 @@ class MainWindow(QMainWindow):
     def _show_validation_error(self, message: str, _focus_hint: str) -> None:
         """將 view-model 的 ``validationFailed`` 訊息以錯誤對話框呈現."""
         QMessageBox.critical(
-            self, "輸入內容錯誤",
+            self,
+            "輸入內容錯誤",
             f"<font size='+1'><b>{message}</b></font>",
         )
 
@@ -191,7 +195,9 @@ class MainWindow(QMainWindow):
             result, detail = updater.pull_and_install(repo_root)
         except Exception as ex:  # noqa: BLE001
             logger.exception(ex)
-            QMessageBox.critical(self, "更新結果", f"<font size='+2'><b>更新失敗: {ex}</b></font>")
+            QMessageBox.critical(
+                self, "更新結果", f"<font size='+2'><b>更新失敗: {ex}</b></font>"
+            )
             return
 
         if result == updater.PullResult.UP_TO_DATE:
@@ -199,20 +205,22 @@ class MainWindow(QMainWindow):
                 self._restart()
             else:
                 QMessageBox.information(
-                    self, "更新結果",
+                    self,
+                    "更新結果",
                     f"<font size='+2'><b>已為最新版本 ({VER_STRING})</b></font>",
                 )
         elif result == updater.PullResult.FAST_FORWARDED:
             self._restart()
         else:
             QMessageBox.warning(
-                self, "更新結果",
+                self,
+                "更新結果",
                 f"<font size='+2'><b>發生錯誤</b></font>\n{detail}",
             )
 
     def _restart(self) -> None:
         """寫入版本 marker 並以 ``os.execl`` 重啟本程式."""
-        marker = (Path(__file__).resolve().parent.parent / UPDATE_MARKER_FILENAME)
+        marker = Path(__file__).resolve().parent.parent / UPDATE_MARKER_FILENAME
         updater.restart(marker, VER_STRING)
 
     def _maybe_show_update_message(self) -> None:
@@ -223,6 +231,7 @@ class MainWindow(QMainWindow):
         old_ver = marker.read_text()
         marker.unlink()
         QMessageBox.information(
-            self, "更新結果",
+            self,
+            "更新結果",
             f"<font size='+2'><b>已由 {old_ver} 更新為 {VER_STRING}</b></font>",
         )

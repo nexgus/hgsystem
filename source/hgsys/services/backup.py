@@ -3,6 +3,7 @@
 Each function spawns the corresponding CLI tool and yields stderr lines so the
 caller (typically a worker thread) can stream progress.
 """
+
 import subprocess
 from collections.abc import Iterator
 from pathlib import Path

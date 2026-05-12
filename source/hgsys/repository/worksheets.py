@@ -1,4 +1,5 @@
 """``worksheets`` collection 的 MongoDB 存取層."""
+
 from bson.objectid import ObjectId
 from pymongo.collection import Collection
 from pymongo.database import Database
@@ -20,10 +21,7 @@ class WorksheetRepository:
 
     def find_for_customer(self, cid: str) -> list[Worksheet]:
         """回傳指定客戶 ``cid`` 的所有工單 (依儲存順序)."""
-        return [
-            Worksheet.from_doc(d)
-            for d in self._coll.find({"cid": cid})
-        ]
+        return [Worksheet.from_doc(d) for d in self._coll.find({"cid": cid})]
 
     def insert(self, worksheet: Worksheet) -> str:
         """新增工單; 若未指定 ``id`` 則自動以新 ``ObjectId`` 填入.
