@@ -1,4 +1,0 @@
-dbfread
-pymongo
-PySide6
-pygit2

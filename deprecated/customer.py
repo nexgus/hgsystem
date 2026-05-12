@@ -1,6 +1,5 @@
 # pylint: disable=no-name-in-module
 import hgsystem as hg
-import inspect
 
 from datetime import datetime
 from PySide6.QtCore import Qt
@@ -171,8 +170,6 @@ class Edit(QGroupBox):
         self._cid = cid
 
     def setContents(self, cid='', name='', title='', birthdate=(0, 0, 0), phones=('', '', '', ''), addr='', broker=''):
-        calframe = inspect.getouterframes(inspect.currentframe(), 2)
-        print(f"caller: {calframe[1][3]}")
         self._cid = cid
         self.edtName.setText(name)
         self.edtTitle.setText(title)
@@ -306,7 +303,7 @@ class History(QTableWidget):
             record["bch_r"], record["bch_l"],
             record["add_r"], record["add_l"], 
             record["pd"], record["source"],
-            record["eyesight_r"], record["eyesight_r"], 
+            record["eyesight_r"], record["eyesight_l"],
             record["lens_r"], record["lens_l"],
             record["frame"], 
             record["memo"], 

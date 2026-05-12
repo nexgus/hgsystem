@@ -1,0 +1,39 @@
+"""Entry point: ``python -m hgsys [-H host] [-p port] [-T]``."""
+import argparse
+
+from pymongo import MongoClient
+from PySide6.QtWidgets import QApplication
+
+from .log import setup_logger
+from .version import VER_STRING
+from .viewmodels.main import MainViewModel
+from .views.main_window import MainWindow
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="HG System",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--version", action="version", version=f"HG System {VER_STRING}")
+    parser.add_argument("-H", "--host", default="localhost", help="MongoDB host address.")
+    parser.add_argument("-p", "--port", type=int, default=27017, help="MongoDB port number.")
+    parser.add_argument("-T", "--test", action="store_true", help="Test mode (auto-restart on Update).")
+    args = parser.parse_args()
+
+    setup_logger()
+
+    app = QApplication([])
+    mongo = MongoClient(args.host, args.port)
+    vm = MainViewModel(mongo)
+    window = MainWindow(vm, test_mode=args.test)
+    window.showMaximized()
+    window.show()
+    try:
+        app.exec()
+    finally:
+        mongo.close()
+
+
+if __name__ == "__main__":
+    main()

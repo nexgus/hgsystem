@@ -1,13 +1,3 @@
-.vscode/
-backup/
-hgsystem/
-Include/
-Lib/
-logs/
-Scripts/
-tcl/
-works/__pycache__/
-
-works/dbf/*
-LICENSE.txt
-mongo.md
+__pycache__/
+.claude/
+*.egg-info/
