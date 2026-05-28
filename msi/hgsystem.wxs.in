@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  hgsystem MSI installer 定義檔 (template).
+
+  此檔為 build.sh 生成 msi/hgsystem.wxs 之來源, @VERSION@ 於 build.sh
+  以 sed 替換為 hgsys/pkg/version/version.go 內之 String. hgsystem.wxs
+  不入版控.
+
+  關鍵設計決策:
+    * UpgradeCode 為固定 GUID, 一旦寫定不可變更, 變更即視為新產品.
+    * ProductCode (Product@Id) 設 *, wixl 編譯時每次自動產生新 GUID,
+      搭配 MajorUpgrade 實現「裝新版自動移除舊版」行為.
+    * AllowSameVersionUpgrades=yes 允許同版本直接覆蓋, 便於開發期反覆 build.
+    * 降級維持預設拒絕.
+    * 安裝範圍 perMachine, 安裝目錄 %ProgramFiles%\hgsystem\,
+      Environment 以 System=yes 寫入系統 PATH (HKLM), 全使用者可見.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="hgsystem"
+           Language="1033"
+           Version="@VERSION@"
+           Manufacturer="Nexgus"
+           UpgradeCode="7C12F6AC-EDAB-4539-BFB3-645EDD61BA4C">
+
+    <!--
+      SummaryCodepage="65001" 將 Summary Information stream 設為 UTF-8,
+      使 Description / Comments 內的 Chinese 字串可被 Windows installer
+      正確顯示, 不被 default cp1252 解讀成亂碼.
+    -->
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             SummaryCodepage="65001"
+             Description="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
+             Manufacturer="Nexgus" />
+
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <Media Id="1" Cabinet="hgsystem.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLDIR" Name="hgsystem">
+
+          <Component Id="HgsystemExe" Guid="*" Win64="yes">
+            <File Id="HgsystemExeFile"
+                  Source="bin/hgsystem-@VERSION@-windows-amd64.exe"
+                  Name="hgsystem.exe"
+                  KeyPath="yes" />
+          </Component>
+
+          <!--
+            Environment 元素不可作為 KeyPath, 故以 dummy registry value
+            (HKLM\Software\hgsystem\installed) 充當本 component 之 KeyPath,
+            為 WiX 慣例做法.
+          -->
+          <Component Id="HgsystemPath" Guid="*" Win64="yes">
+            <RegistryValue Root="HKLM"
+                           Key="Software\hgsystem"
+                           Name="installed"
+                           Type="integer"
+                           Value="1"
+                           KeyPath="yes" />
+            <Environment Id="UpdatePath"
+                         Name="PATH"
+                         Action="set"
+                         Part="last"
+                         System="yes"
+                         Permanent="no"
+                         Value="[INSTALLDIR]" />
+          </Component>
+
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id="Main" Title="hgsystem" Level="1">
+      <ComponentRef Id="HgsystemExe" />
+      <ComponentRef Id="HgsystemPath" />
+    </Feature>
+
+  </Product>
+</Wix>

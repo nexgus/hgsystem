@@ -1,0 +1,195 @@
+:root {
+  --font-stack: "Microsoft YaHei", "Microsoft JhengHei", "PingFang TC",
+    "Helvetica Neue", Arial, sans-serif;
+  --border-color: #c9c9c9;
+  --row-highlight-bg: #6495ed;
+  --row-highlight-fg: #ffffff;
+  --label-width: 65px;
+  --field-height: 28px;
+  --section-bg: #fafafa;
+  font-family: var(--font-stack);
+  font-size: 14px;
+  color: #1c1c1c;
+  background: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #ffffff;
+}
+
+button {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: #f4f4f4;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #e8e8e8;
+}
+
+button:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 4px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: #fff;
+  height: var(--field-height);
+}
+
+input.edit-red,
+select.edit-red {
+  color: red;
+}
+
+input:disabled,
+select:disabled {
+  background: #f0f0f0;
+}
+
+fieldset {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 0;
+  background: var(--section-bg);
+}
+
+fieldset > legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+th,
+td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #e5e5e5;
+  text-align: left;
+  white-space: nowrap;
+}
+
+tr.selected td {
+  background: var(--row-highlight-bg);
+  color: var(--row-highlight-fg);
+}
+
+.menu-bar {
+  display: flex;
+  background: #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 4px;
+  gap: 8px;
+}
+
+.menu-bar > .menu {
+  position: relative;
+}
+
+.menu-bar button.menu-button {
+  background: transparent;
+  border: none;
+  padding: 4px 12px;
+}
+
+.menu-bar .menu-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  min-width: 140px;
+  padding: 4px 0;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.menu-bar .menu-popup button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+}
+
+.menu-bar .menu-popup button:hover {
+  background: #e8f0fe;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-content {
+  flex: 1;
+  padding: 8px;
+  overflow: auto;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 6px;
+  padding: 16px;
+  min-width: 320px;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog .dialog-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.dialog .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

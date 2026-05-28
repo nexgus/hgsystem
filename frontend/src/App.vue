@@ -1,0 +1,419 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { Dialogs } from "@wailsio/runtime";
+import {
+  CustomerService,
+  WorksheetService,
+  SearchService,
+  BackupService,
+  SystemService,
+} from "../bindings/hgsys/pkg/app";
+import type { Customer, Worksheet } from "./lib/types";
+import { emptyCustomer, emptyWorksheet } from "./lib/types";
+import type { EditMode } from "./lib/editMode";
+import { formatROCDate } from "./lib/rocDate";
+import MenuBar from "./components/MenuBar.vue";
+import CustomerPanel from "./components/CustomerPanel.vue";
+import WorksheetHistoryTable from "./components/WorksheetHistoryTable.vue";
+import WorksheetPanel from "./components/WorksheetPanel.vue";
+import SearchDialog from "./components/SearchDialog.vue";
+import BackupRestoreDialog from "./components/BackupRestoreDialog.vue";
+import InfoDialog from "./components/InfoDialog.vue";
+
+// ---- customer state ---------------------------------------------------------
+const currentCustomer = ref<Customer | null>(null);
+const customerMode = ref<EditMode>("none");
+const customerTotal = ref(0);
+const customerSnapshot = ref<Customer | null>(null);
+
+// ---- worksheet state --------------------------------------------------------
+const worksheetHistory = ref<Worksheet[]>([]);
+const currentWorksheet = ref<Worksheet | null>(null);
+// Worksheet starts INHIBIT — no customer selected.
+const worksheetMode = ref<EditMode>("inhibit");
+const worksheetSnapshot = ref<Worksheet | null>(null);
+
+// ---- dialog state -----------------------------------------------------------
+const showSearch = ref(false);
+const backupState = ref<{ savepath: string; mode: "backup" | "restore" } | null>(null);
+const info = ref<{
+  title: string;
+  message: string;
+  variant?: "info" | "error" | "confirm";
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm?: () => void;
+} | null>(null);
+const appVersion = ref("");
+
+// ---- coordination: customer mode → worksheet inhibit -----------------------
+function applyWorksheetInhibit(inhibited: boolean) {
+  if (inhibited) {
+    worksheetMode.value = "inhibit";
+  } else {
+    worksheetMode.value = currentCustomer.value ? "none" : "inhibit";
+  }
+}
+
+function setCustomerMode(m: EditMode) {
+  customerMode.value = m;
+  if (m === "append" || m === "modify") {
+    applyWorksheetInhibit(true);
+  } else if (m === "none") {
+    applyWorksheetInhibit(false);
+  }
+}
+
+function setWorksheetMode(m: EditMode) {
+  worksheetMode.value = m;
+  if (m === "append" || m === "modify") {
+    customerMode.value = "inhibit";
+  } else if (m === "none") {
+    customerMode.value = "none";
+  }
+}
+
+// ---- bootstrap --------------------------------------------------------------
+async function refreshTotal() {
+  customerTotal.value = Number(await CustomerService.Count());
+}
+
+async function loadHistoryFor(cid: string) {
+  const list = await WorksheetService.ListForCustomer(cid);
+  worksheetHistory.value = list ?? [];
+  currentWorksheet.value = worksheetHistory.value[0] ?? null;
+}
+
+async function clearHistory() {
+  worksheetHistory.value = [];
+  currentWorksheet.value = null;
+}
+
+async function setCurrentCustomer(c: Customer | null) {
+  currentCustomer.value = c;
+  if (c && c.id) {
+    await loadHistoryFor(c.id);
+  } else {
+    await clearHistory();
+  }
+  // Customer presence drives worksheet inhibit when not actively editing.
+  if (worksheetMode.value !== "append" && worksheetMode.value !== "modify") {
+    applyWorksheetInhibit(false);
+  }
+}
+
+onMounted(async () => {
+  appVersion.value = await SystemService.Version();
+  await refreshTotal();
+  const pending = await SystemService.PendingUpdateMessage();
+  if (pending) {
+    info.value = {
+      title: "更新結果",
+      message: `已由 ${pending} 更新為 ${appVersion.value}`,
+    };
+  }
+});
+
+// ---- customer actions -------------------------------------------------------
+function startAppendCustomer() {
+  customerSnapshot.value = currentCustomer.value;
+  currentCustomer.value = emptyCustomer();
+  setCustomerMode("append");
+}
+
+function startModifyCustomer() {
+  if (!currentCustomer.value) return;
+  customerSnapshot.value = currentCustomer.value;
+  setCustomerMode("modify");
+}
+
+function cancelCustomerEdit() {
+  if (customerMode.value === "append" && customerSnapshot.value) {
+    currentCustomer.value = customerSnapshot.value;
+  } else if (customerMode.value === "modify" && customerSnapshot.value) {
+    currentCustomer.value = customerSnapshot.value;
+  } else if (!customerSnapshot.value) {
+    currentCustomer.value = null;
+  }
+  customerSnapshot.value = null;
+  setCustomerMode("none");
+}
+
+async function saveCustomer(draft: Customer) {
+  try {
+    if (customerMode.value === "append") {
+      const newId = await CustomerService.Insert(draft);
+      const stored: Customer = { ...draft, id: newId };
+      await setCurrentCustomer(stored);
+      await refreshTotal();
+    } else if (customerMode.value === "modify") {
+      const id = customerSnapshot.value?.id ?? draft.id;
+      await CustomerService.Update(id, draft);
+      const stored: Customer = { ...draft, id };
+      await setCurrentCustomer(stored);
+    }
+    customerSnapshot.value = null;
+    setCustomerMode("none");
+  } catch (e) {
+    info.value = {
+      title: "輸入內容錯誤",
+      message: String(e),
+      variant: "error",
+    };
+  }
+}
+
+function confirmDeleteCustomer() {
+  if (!currentCustomer.value) return;
+  const c = currentCustomer.value;
+  const wsCount = worksheetHistory.value.length;
+  info.value = {
+    title: `刪除客戶 ${c.id}`,
+    message: `確定要刪除該筆資料嗎?<br/>這會將所有該客戶的紀錄刪除 (共 ${wsCount} 筆), 無法復原!<br/>姓名: ${c.name}<br/>地址: ${c.addr}`,
+    variant: "confirm",
+    confirmLabel: "是",
+    cancelLabel: "否",
+    onConfirm: async () => {
+      info.value = null;
+      await CustomerService.Delete(c.id);
+      await setCurrentCustomer(null);
+      await refreshTotal();
+    },
+  };
+}
+
+// ---- worksheet actions ------------------------------------------------------
+function startAppendWorksheet() {
+  if (!currentCustomer.value) return;
+  worksheetSnapshot.value = currentWorksheet.value;
+  currentWorksheet.value = emptyWorksheet(currentCustomer.value.id);
+  setWorksheetMode("append");
+}
+
+function startModifyWorksheet() {
+  if (!currentWorksheet.value) return;
+  worksheetSnapshot.value = currentWorksheet.value;
+  setWorksheetMode("modify");
+}
+
+function cancelWorksheetEdit() {
+  if (worksheetSnapshot.value) {
+    currentWorksheet.value = worksheetSnapshot.value;
+  }
+  worksheetSnapshot.value = null;
+  setWorksheetMode("none");
+}
+
+async function saveWorksheet(draft: Worksheet) {
+  try {
+    if (worksheetMode.value === "append") {
+      draft.cid = currentCustomer.value?.id ?? draft.cid;
+      const newId = await WorksheetService.Insert(draft);
+      const stored: Worksheet = { ...draft, id: newId };
+      worksheetHistory.value = [...worksheetHistory.value, stored];
+      currentWorksheet.value = stored;
+    } else if (worksheetMode.value === "modify") {
+      const id = worksheetSnapshot.value?.id ?? draft.id;
+      draft.id = id;
+      draft.cid = worksheetSnapshot.value?.cid ?? draft.cid;
+      await WorksheetService.Update(id, draft);
+      worksheetHistory.value = worksheetHistory.value.map((w) =>
+        w.id === id ? draft : w,
+      );
+      currentWorksheet.value = draft;
+    }
+    worksheetSnapshot.value = null;
+    setWorksheetMode("none");
+  } catch (e) {
+    info.value = {
+      title: "輸入內容錯誤",
+      message: String(e),
+      variant: "error",
+    };
+  }
+}
+
+function confirmDeleteWorksheet() {
+  if (!currentWorksheet.value) return;
+  const w = currentWorksheet.value;
+  info.value = {
+    title: `刪除工單 ${w.id}`,
+    message: `確定要刪除該筆資料嗎?<br/>收件日: ${formatROCDate(w.orderTime)}<br/>交件日: ${formatROCDate(w.deliverTime)}`,
+    variant: "confirm",
+    confirmLabel: "是",
+    cancelLabel: "否",
+    onConfirm: async () => {
+      info.value = null;
+      await WorksheetService.Delete(w.id);
+      const idx = worksheetHistory.value.findIndex((x) => x.id === w.id);
+      worksheetHistory.value = worksheetHistory.value.filter((x) => x.id !== w.id);
+      if (worksheetHistory.value.length > 0) {
+        const pick = Math.min(idx, worksheetHistory.value.length - 1);
+        currentWorksheet.value = worksheetHistory.value[pick];
+      } else {
+        currentWorksheet.value = null;
+      }
+      setWorksheetMode("none");
+    },
+  };
+}
+
+function selectWorksheet(id: string) {
+  const w = worksheetHistory.value.find((x) => x.id === id);
+  if (w) currentWorksheet.value = w;
+}
+
+// ---- menu actions -----------------------------------------------------------
+async function onMenuUpdate() {
+  const result = await SystemService.Update();
+  if (result.state === "uptodate") {
+    info.value = {
+      title: "更新結果",
+      message: `已為最新版本 (${appVersion.value})`,
+    };
+  } else if (result.state === "unexpected") {
+    info.value = {
+      title: "更新結果",
+      message: `發生錯誤\n${result.detail}`,
+      variant: "error",
+    };
+  } else if (result.state === "error") {
+    info.value = {
+      title: "更新結果",
+      message: `更新失敗: ${result.detail}`,
+      variant: "error",
+    };
+  }
+  // "fastforward" path restarts via os.Exec; this code is never reached.
+}
+
+function onMenuAbout() {
+  info.value = {
+    title: "有關",
+    message: `豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (${appVersion.value})`,
+  };
+}
+
+async function onMenuExit() {
+  await SystemService.Exit();
+}
+
+async function onMenuBackup() {
+  const dir = await Dialogs.OpenFile({
+    Title: "選擇備份目錄",
+    CanChooseDirectories: true,
+    CanChooseFiles: false,
+    CanCreateDirectories: true,
+  });
+  if (!dir || Array.isArray(dir)) return;
+  backupState.value = { savepath: dir, mode: "backup" };
+}
+
+async function onMenuRestore() {
+  const dir = await Dialogs.OpenFile({
+    Title: "選擇備份目錄",
+    CanChooseDirectories: true,
+    CanChooseFiles: false,
+  });
+  if (!dir || Array.isArray(dir)) return;
+  const resolved = await BackupService.ResolveRestoreDir(dir);
+  const missing = await BackupService.MissingRestoreFiles(resolved);
+  if (missing && missing.length > 0) {
+    info.value = {
+      title: "無法還原",
+      message: `檔案不完整, 無法還原. 缺少<br/>${missing.join("<br/>")}`,
+      variant: "error",
+    };
+    return;
+  }
+  backupState.value = { savepath: resolved, mode: "restore" };
+}
+
+// ---- search dialog ---------------------------------------------------------
+async function onAcceptSearch(c: Customer) {
+  showSearch.value = false;
+  await SearchService.Remember(c);
+  await setCurrentCustomer(c);
+}
+
+// Frozen when sibling is editing — block clicks on history rows.
+const historyFrozen = computed(() =>
+  customerMode.value === "append" ||
+  customerMode.value === "modify" ||
+  worksheetMode.value === "append" ||
+  worksheetMode.value === "modify",
+);
+</script>
+
+<template>
+  <div class="app-shell">
+    <MenuBar
+      @update="onMenuUpdate"
+      @about="onMenuAbout"
+      @exit="onMenuExit"
+      @backup="onMenuBackup"
+      @restore="onMenuRestore"
+    />
+    <div class="app-content">
+      <div class="customer-row">
+        <CustomerPanel
+          :current="currentCustomer"
+          :mode="customerMode"
+          :total="customerTotal"
+          @append="startAppendCustomer"
+          @modify="startModifyCustomer"
+          @save="saveCustomer"
+          @cancel="cancelCustomerEdit"
+          @remove="confirmDeleteCustomer"
+          @search="showSearch = true"
+        />
+        <WorksheetHistoryTable
+          :rows="worksheetHistory"
+          :current-id="currentWorksheet?.id ?? ''"
+          :frozen="historyFrozen"
+          @select="selectWorksheet"
+        />
+      </div>
+      <WorksheetPanel
+        :current="currentWorksheet"
+        :mode="worksheetMode"
+        @append="startAppendWorksheet"
+        @modify="startModifyWorksheet"
+        @save="saveWorksheet"
+        @cancel="cancelWorksheetEdit"
+        @remove="confirmDeleteWorksheet"
+      />
+    </div>
+
+    <SearchDialog
+      v-if="showSearch"
+      @close="showSearch = false"
+      @accept="onAcceptSearch"
+    />
+    <BackupRestoreDialog
+      v-if="backupState"
+      :savepath="backupState.savepath"
+      :mode="backupState.mode"
+      @close="backupState = null"
+    />
+    <InfoDialog
+      v-if="info"
+      :title="info.title"
+      :message="info.message"
+      :variant="info.variant"
+      :confirm-label="info.confirmLabel"
+      :cancel-label="info.cancelLabel"
+      @confirm="info?.onConfirm?.()"
+      @close="info = null"
+    />
+  </div>
+</template>
+
+<style scoped>
+.customer-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+</style>
