@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
 import type { Customer } from "../lib/types";
 import { formatROCDate } from "../lib/rocDate";
 import { SearchService } from "../../bindings/hgsys/pkg/app";
 import ROCDateInput from "./ROCDateInput.vue";
+import { nextRowIndex, rowsPerPage, scrollSelectedIntoView } from "../lib/tableNav";
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -45,6 +46,24 @@ function onAccept() {
   const picked = results.value.find((c) => c.id === selectedId.value);
   if (picked) emit("accept", picked);
 }
+
+const resultsEl = ref<HTMLElement>();
+
+// 結果表格 focus 時: 上下鍵 / PageUp,Down / Home,End 移動選取列, Enter 等同確定.
+function onKeydown(e: KeyboardEvent) {
+  if (results.value.length === 0) return;
+  if (e.key === "Enter") {
+    e.preventDefault();
+    onAccept();
+    return;
+  }
+  const current = results.value.findIndex((c) => c.id === selectedId.value);
+  const next = nextRowIndex(e.key, current, results.value.length, rowsPerPage(resultsEl.value));
+  if (next === null) return;
+  e.preventDefault();
+  selectedId.value = results.value[next].id;
+  nextTick(() => scrollSelectedIntoView(resultsEl.value));
+}
 </script>
 
 <template>
@@ -82,7 +101,7 @@ function onAccept() {
           <button @click="doHistory">搜尋紀錄</button>
         </div>
       </div>
-      <table class="results">
+      <table class="results" ref="resultsEl" tabindex="0" @keydown="onKeydown">
         <thead>
           <tr>
             <th>姓名</th>

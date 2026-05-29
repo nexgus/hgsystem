@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, ref } from "vue";
 import type { Worksheet } from "../lib/types";
 import { formatROCDate } from "../lib/rocDate";
+import { nextRowIndex, rowsPerPage, scrollSelectedIntoView } from "../lib/tableNav";
 
 const props = defineProps<{
   rows: Worksheet[];
@@ -41,11 +42,25 @@ function cell(w: Worksheet, key: string): string {
 }
 
 const visibleRows = computed(() => props.rows);
+
+const tableEl = ref<HTMLElement>();
+
+// 表格 focus 時用上下鍵 / PageUp,Down / Home,End 移動選取列, 而非捲動捲軸.
+function onKeydown(e: KeyboardEvent) {
+  if (props.frozen) return;
+  const rows = props.rows;
+  const current = rows.findIndex((w) => w.id === props.currentId);
+  const next = nextRowIndex(e.key, current, rows.length, rowsPerPage(tableEl.value));
+  if (next === null) return;
+  e.preventDefault();
+  emit("select", rows[next].id);
+  nextTick(() => scrollSelectedIntoView(tableEl.value));
+}
 </script>
 
 <template>
   <div :class="['history-cell', { frozen }]">
-    <div class="history-table">
+    <div class="history-table" ref="tableEl" tabindex="0" @keydown="onKeydown">
       <table>
         <thead>
           <tr>
