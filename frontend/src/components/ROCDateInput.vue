@@ -1,63 +1,123 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { YEAR_NONE, toROCYear, toROCParts } from "../lib/rocDate";
 import {
-  YEAR_NONE,
-  toROCYear,
-  fromROCParts,
-  toROCParts,
-  daysInMonth,
-} from "../lib/rocDate";
+  formatROCParts,
+  parseROCDateInput,
+  isValidROCParts,
+  rocPartsErrorMessage,
+  rocPartsToISO,
+  type ROCDateParts,
+} from "../lib/rocDateInput";
 import type { EditMode } from "../lib/editMode";
 import { isEditable, editClass } from "../lib/editMode";
 
 const props = defineProps<{
   modelValue: string | null;
   mode: EditMode;
-  yearLabel?: string;
 }>();
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: string | null): void;
 }>();
 
-const minROC = toROCYear(1);
-const maxROC = toROCYear(9999);
-
-const parts = computed(() => toROCParts(props.modelValue));
-
-function emitFromParts(year: number, month: number, day: number) {
-  const d = fromROCParts(year, month, day);
-  emit("update:modelValue", d ? d.toISOString() : null);
-}
-
-const days = computed(() => {
-  const max = daysInMonth(parts.value.year, parts.value.month);
-  return Array.from({ length: max + 1 }, (_, i) => i);
-});
-
-watch(
-  () => parts.value.month,
-  () => {
-    // 月份變更時, 原本的日數可能超出範圍, 在此夾到合法值.
-    const max = daysInMonth(parts.value.year, parts.value.month);
-    if (parts.value.day > max) {
-      emitFromParts(parts.value.year, parts.value.month, max);
-    }
-  },
-);
-
 const enabled = computed(() => isEditable(props.mode));
 const klass = computed(() => editClass(props.mode));
 
-function setYear(v: string) {
-  const n = Number(v);
-  emitFromParts(Number.isFinite(n) ? n : 0, parts.value.month, parts.value.day);
+const text = ref(formatROCParts(toROCParts(props.modelValue)));
+const error = ref<string | null>(null);
+
+watch(
+  () => props.modelValue,
+  (v) => {
+    const parsed = parseROCDateInput(text.value);
+    if (parsed && isValidROCParts(parsed) && rocPartsToISO(parsed) === v) {
+      // 使用者輸入剛好對應到外部更新的值, 不覆寫他正在打的字.
+      return;
+    }
+    text.value = formatROCParts(toROCParts(v));
+    error.value = null;
+  },
+);
+
+function onInput(e: Event) {
+  const v = (e.target as HTMLInputElement).value;
+  text.value = v;
+  const parsed = parseROCDateInput(v);
+  if (parsed && isValidROCParts(parsed)) {
+    error.value = null;
+    const iso = rocPartsToISO(parsed);
+    if (iso !== props.modelValue) emit("update:modelValue", iso);
+  }
+  // 打字途中不顯示錯誤, 等失焦再判.
 }
-function setMonth(v: string) {
-  emitFromParts(parts.value.year, Number(v), parts.value.day);
+
+function onBlur() {
+  const v = text.value.trim();
+  if (!v) {
+    error.value = null;
+    if (props.modelValue !== null) emit("update:modelValue", null);
+    text.value = "";
+    return;
+  }
+  const parsed = parseROCDateInput(v);
+  if (!parsed) {
+    error.value = "格式不正確 (例: 114/05/29、5/29、1971/05/29 或 1140529)";
+    return;
+  }
+  if (!isValidROCParts(parsed)) {
+    error.value = rocPartsErrorMessage(parsed);
+    return;
+  }
+  error.value = null;
+  text.value = formatROCParts(parsed);
+  const iso = rocPartsToISO(parsed);
+  if (iso !== props.modelValue) emit("update:modelValue", iso);
 }
-function setDay(v: string) {
-  emitFromParts(parts.value.year, parts.value.month, Number(v));
+
+const pickerRef = ref<HTMLInputElement | null>(null);
+
+const pickerValue = computed(() => {
+  if (!props.modelValue) return "";
+  const d = new Date(props.modelValue);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getUTCFullYear();
+  if (y === YEAR_NONE) return "";
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${mm}-${dd}`;
+});
+
+function openPicker() {
+  const el = pickerRef.value;
+  if (!el) return;
+  // showPicker() 在 WebView2 與較新 WebKit 上支援; 不支援時 fallback 到 focus()/click().
+  if (typeof el.showPicker === "function") {
+    try {
+      el.showPicker();
+      return;
+    } catch {
+      // 忽略 (例如非 user-gesture), 改用 focus.
+    }
+  }
+  el.focus();
+  el.click();
+}
+
+function onPickerChange(e: Event) {
+  const v = (e.target as HTMLInputElement).value;
+  if (!v) {
+    text.value = "";
+    error.value = null;
+    if (props.modelValue !== null) emit("update:modelValue", null);
+    return;
+  }
+  const [yyyy, mm, dd] = v.split("-").map(Number);
+  const parts: ROCDateParts = { year: toROCYear(yyyy), month: mm, day: dd };
+  text.value = formatROCParts(parts);
+  error.value = null;
+  const iso = rocPartsToISO(parts);
+  if (iso !== props.modelValue) emit("update:modelValue", iso);
 }
 </script>
 
@@ -65,34 +125,37 @@ function setDay(v: string) {
   <span class="roc-date">
     <span class="era">民國</span>
     <input
-      type="number"
-      :min="minROC"
-      :max="maxROC"
-      :value="parts.year"
+      type="text"
+      :value="text"
       :disabled="!enabled"
-      :class="klass"
-      style="width: 70px; text-align: right"
-      @input="(e) => setYear((e.target as HTMLInputElement).value)"
+      :class="[klass, { 'has-error': error }]"
+      :title="error || ''"
+      placeholder="如 114/05/29"
+      inputmode="numeric"
+      autocomplete="off"
+      @input="onInput"
+      @blur="onBlur"
     />
-    <span>年</span>
-    <select
-      :value="parts.month"
-      :disabled="!enabled"
-      :class="klass"
-      @change="(e) => setMonth((e.target as HTMLSelectElement).value)"
+    <button
+      v-if="enabled"
+      type="button"
+      class="picker-btn"
+      tabindex="-1"
+      title="開啟日曆選擇"
+      @click="openPicker"
     >
-      <option v-for="m in 13" :key="m - 1" :value="m - 1">{{ m - 1 }}</option>
-    </select>
-    <span>月</span>
-    <select
-      :value="parts.day"
+      📅
+    </button>
+    <input
+      ref="pickerRef"
+      type="date"
+      class="picker-hidden"
+      :value="pickerValue"
       :disabled="!enabled"
-      :class="klass"
-      @change="(e) => setDay((e.target as HTMLSelectElement).value)"
-    >
-      <option v-for="d in days" :key="d" :value="d">{{ d }}</option>
-    </select>
-    <span>日</span>
+      tabindex="-1"
+      aria-hidden="true"
+      @change="onPickerChange"
+    />
   </span>
 </template>
 
@@ -101,8 +164,37 @@ function setDay(v: string) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  position: relative;
 }
 .era {
   font-size: 14px;
+}
+input[type="text"] {
+  width: 110px;
+  text-align: right;
+}
+input[type="text"].has-error {
+  background: #fee0e0;
+  border-color: #c33;
+}
+.picker-btn {
+  padding: 0 4px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 14px;
+  line-height: 1;
+}
+.picker-btn:hover {
+  border-color: #888;
+}
+.picker-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  border: 0;
+  padding: 0;
 }
 </style>
