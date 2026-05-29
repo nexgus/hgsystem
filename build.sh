@@ -108,6 +108,18 @@ function ensure_wixl {
     brew install msitools || { echo "Error: failed to install msitools." >&2; exit 1; }
 }
 
+# gen_winicon 將 cmd/${BIN}/icon.ico 編成 .syso 檔, go build 偵測到
+# cmd/${BIN}/rsrc_windows_amd64.syso 即自動連結 (僅作用於 windows/amd64),
+# 使 Windows 檔案總管 / 工作列顯示應用程式圖示. icon.png (供 Wails 視窗圖示
+# 用) 與 icon.ico 入版控; 產生之 .syso 不入版控 (見 .gitignore).
+function gen_winicon {
+    echo "Generating windows icon resource (rsrc_windows_amd64.syso)..."
+    (cd "${PKG}" && go run github.com/akavel/rsrc@latest \
+        -ico "cmd/${BIN}/icon.ico" -arch amd64 \
+        -o "cmd/${BIN}/rsrc_windows_amd64.syso") \
+        || { echo "Error: failed to generate windows icon resource." >&2; exit 1; }
+}
+
 function build_frontend {
     echo "Generating Wails bindings..."
     # wails3 generate 必須在含 go.mod 的目錄跑, 故進入 ${PKG}/. cmd/${BIN}
@@ -174,6 +186,39 @@ function build_msi {
     msibuild "bin/${BIN}-${VER}.msi" -i "$sum_idt" \
         || { echo "Error: msibuild failed to patch _SummaryInformation." >&2; rm -f "$sum_idt"; exit 1; }
     rm -f "$sum_idt"
+
+    # 上一段修的是 Summary Information stream (Description / Subject); 而
+    # 「新增/移除程式」清單顯示的名稱來自 Property 表的 ProductName, 存於另一個
+    # 獨立的資料庫字串池. wixl 0.106 的資料庫字串池 codepage 無法編碼中文, 會把
+    # Product@Name 的中文直接丟成空字串 (純 ASCII 名稱則正常). 字串在 wixl 階段
+    # 即已遺失, 事後僅改 codepage 無法救回, 故此處分兩步後處理:
+    #   1. 以 _ForceCodepage 將資料庫字串池 codepage 設為 65001 (UTF-8).
+    #   2. 自渲染後的 .wxs 取回 Product@Name, 以 UTF-8 重新匯入 Property 表的
+    #      ProductName (codepage 已為 65001, 故能正確存入中文).
+    # 如此 Windows 端「新增/移除程式」即顯示正確的中文產品名稱.
+    echo "Patching database codepage to UTF-8 and restoring Chinese ProductName..."
+    local product_name cp_idt prop_idt
+    product_name=$(grep -A1 '<Product Id=' "msi/${BIN}.wxs" \
+        | sed -n 's/.*Name="\(.*\)".*/\1/p' | head -1)
+    if [ -z "$product_name" ]; then
+        echo "Error: failed to extract Product@Name from msi/${BIN}.wxs." >&2
+        exit 1
+    fi
+
+    cp_idt=$(mktemp)
+    # MSI _ForceCodepage 文字檔: 前兩行 (欄名 / 欄型) 空白, 第三行為
+    # "<codepage><TAB>_ForceCodepage"; 行尾用 CRLF 與 msiinfo export 一致.
+    printf '\r\n\r\n65001\t_ForceCodepage\r\n' > "$cp_idt"
+    msibuild "bin/${BIN}-${VER}.msi" -i "$cp_idt" \
+        || { echo "Error: msibuild failed to set database codepage." >&2; rm -f "$cp_idt"; exit 1; }
+    rm -f "$cp_idt"
+
+    prop_idt=$(mktemp)
+    msiinfo export "bin/${BIN}-${VER}.msi" Property \
+        | sed "s|^ProductName${tab}.*|ProductName${tab}${product_name}|" > "$prop_idt"
+    msibuild "bin/${BIN}-${VER}.msi" -i "$prop_idt" \
+        || { echo "Error: msibuild failed to restore ProductName." >&2; rm -f "$prop_idt"; exit 1; }
+    rm -f "$prop_idt"
 }
 
 # mklink 為兩個目標平台各建一組短 symlink: 無後綴指向 darwin/arm64,
@@ -195,6 +240,7 @@ ensure_wixl
 (cd "${PKG}" && go mod download)
 
 build_frontend
+gen_winicon
 
 # 透過 -extldflags 傳 -mmacosx-version-min=26.0 給 external linker (clang),
 # 與 Wails v3 alpha.95 內含之 prebuilt Objective-C 物件檔 (以 macOS 26 SDK

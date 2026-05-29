@@ -27,6 +27,13 @@ import (
 //go:embed all:dist
 var assets embed.FS
 
+// iconBytes 為應用程式圖示, 取自 Noto Emoji 的 eyeglasses (U+1F453), Apache-2.0
+// 授權. 傳給 application.Options.Icon 供視窗 / 工作列使用; Windows exe 的檔案
+// 圖示另由 build.sh 產生的 rsrc_windows_amd64.syso 提供 (同一張 icon).
+//
+//go:embed icon.png
+var iconBytes []byte
+
 func main() {
 	var (
 		host    = flag.String("H", "localhost", "MongoDB host address (also --host).")
@@ -89,6 +96,7 @@ func main() {
 	wailsApp := application.New(application.Options{
 		Name:        "hgsystem",
 		Description: fmt.Sprintf("豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (%s)", version.String),
+		Icon:        iconBytes,
 		Services: []application.Service{
 			application.NewService(customerSvc),
 			application.NewService(worksheetSvc),

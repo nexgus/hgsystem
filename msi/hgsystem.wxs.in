@@ -17,7 +17,7 @@
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*"
-           Name="hgsystem"
+           Name="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (hgsystem)"
            Language="1033"
            Version="@VERSION@"
            Manufacturer="Nexgus"
@@ -39,6 +39,14 @@
                   DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 
     <Media Id="1" Cabinet="hgsystem.cab" EmbedCab="yes" />
+
+    <!--
+      Icon 與 ARPPRODUCTICON 使「新增/移除程式」清單於本產品名稱旁顯示眼鏡
+      圖示. SourceFile 之相對路徑以 wixl 之 CWD (repo root) 為基準, 指向與
+      Windows exe 嵌入之 rsrc 相同的 icon.ico. Icon@Id 依慣例以 .ico 結尾.
+    -->
+    <Icon Id="hgsystem.ico" SourceFile="hgsys/cmd/hgsystem/icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="hgsystem.ico" />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
