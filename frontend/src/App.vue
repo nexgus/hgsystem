@@ -92,9 +92,27 @@ async function refreshTotal() {
   customerTotal.value = Number(await CustomerService.Count());
 }
 
+// 取得工單收件日的時間戳; 無收件日 (或無法解析) 視為最舊.
+function worksheetOrderMs(w: Worksheet): number {
+  if (w.orderTime == null) return Number.NEGATIVE_INFINITY;
+  const ms = new Date(w.orderTime as string | Date).getTime();
+  return Number.isNaN(ms) ? Number.NEGATIVE_INFINITY : ms;
+}
+
+// 工單依收件日由新到舊排序 (最新在最上面, 最舊在最下面);
+// 同一收件日則以 id (字串化 ObjectId, 內含建立時間) 由新到舊.
+function sortWorksheets(list: Worksheet[]): Worksheet[] {
+  return [...list].sort((a, b) => {
+    const ta = worksheetOrderMs(a);
+    const tb = worksheetOrderMs(b);
+    if (ta !== tb) return tb - ta;
+    return (b.id ?? "").localeCompare(a.id ?? "");
+  });
+}
+
 async function loadHistoryFor(cid: string) {
   const list = await WorksheetService.ListForCustomer(cid);
-  worksheetHistory.value = list ?? [];
+  worksheetHistory.value = sortWorksheets(list ?? []);
   currentWorksheet.value = worksheetHistory.value[0] ?? null;
 }
 
@@ -271,15 +289,15 @@ async function saveWorksheet(draft: Worksheet) {
       draft.cid = currentCustomer.value?.id ?? draft.cid;
       const newId = await WorksheetService.Insert(draft);
       const stored: Worksheet = { ...draft, id: newId };
-      worksheetHistory.value = [...worksheetHistory.value, stored];
+      worksheetHistory.value = sortWorksheets([...worksheetHistory.value, stored]);
       currentWorksheet.value = stored;
     } else if (worksheetMode.value === "modify") {
       const id = worksheetSnapshot.value?.id ?? draft.id;
       draft.id = id;
       draft.cid = worksheetSnapshot.value?.cid ?? draft.cid;
       await WorksheetService.Update(id, draft);
-      worksheetHistory.value = worksheetHistory.value.map((w) =>
-        w.id === id ? draft : w,
+      worksheetHistory.value = sortWorksheets(
+        worksheetHistory.value.map((w) => (w.id === id ? draft : w)),
       );
       currentWorksheet.value = draft;
     }
