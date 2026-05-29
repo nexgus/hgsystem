@@ -20,6 +20,7 @@ type Repositories struct {
 	Customers *CustomerRepository
 	Worksheets *WorksheetRepository
 	SearchHistory *SearchHistoryRepository
+	Titles *TitleRepository
 }
 
 // New 於指定的 client 上開啟 hgsystem 資料庫, 回傳打包好的 repositories.
@@ -29,6 +30,7 @@ func New(client *mongo.Client) *Repositories {
 		Customers:     NewCustomerRepository(db),
 		Worksheets:    NewWorksheetRepository(db),
 		SearchHistory: NewSearchHistoryRepository(db),
+		Titles:        NewTitleRepository(db),
 	}
 }
 

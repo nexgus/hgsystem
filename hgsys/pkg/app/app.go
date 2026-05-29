@@ -50,11 +50,31 @@ func Connect(ctx context.Context, cfg Config) (*mongo.Client, error) {
 }
 
 // PrepareRepositories 於指定的 client 上建立各 repository, 並清空搜尋歷史
-// (對齊舊版啟動行為).
+// (對齊舊版啟動行為). 另外於首次啟動時 seed 預設稱謂清單 (titles collection
+// 為空時才會寫入, 不會覆寫使用者自訂的內容).
 func PrepareRepositories(ctx context.Context, client *mongo.Client) (*repository.Repositories, error) {
 	repos := repository.New(client)
 	if err := repos.SearchHistory.Clear(ctx); err != nil {
 		return nil, fmt.Errorf("clear search history: %w", err)
 	}
+	if err := repos.Titles.SeedIfEmpty(ctx, DefaultTitles); err != nil {
+		return nil, fmt.Errorf("seed titles: %w", err)
+	}
 	return repos, nil
+}
+
+// DefaultTitles 為首次啟動 titles collection 時寫入的預設稱謂. 空字串不在此列 —
+// 它由前端視為「無稱謂」的固定選項, 而非清單成員.
+var DefaultTitles = []string{
+	"Miss",
+	"Mr.",
+	"先生",
+	"太太",
+	"女士",
+	"婆婆",
+	"小姐",
+	"小弟",
+	"居士",
+	"師父",
+	"法師",
 }

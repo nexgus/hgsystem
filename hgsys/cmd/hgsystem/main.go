@@ -81,6 +81,7 @@ func main() {
 	customerSvc := app.NewCustomerService(repos)
 	worksheetSvc := app.NewWorksheetService(repos)
 	searchSvc := app.NewSearchService(repos)
+	titleSvc := app.NewTitleService(repos)
 	// Backup / System service 需要 *App 來發送事件 / 結束程式; 在 New 之後再注入.
 	backupSvc := app.NewBackupService(nil)
 	systemSvc := app.NewSystemService(nil, repoRoot, *test)
@@ -92,6 +93,7 @@ func main() {
 			application.NewService(customerSvc),
 			application.NewService(worksheetSvc),
 			application.NewService(searchSvc),
+			application.NewService(titleSvc),
 			application.NewService(backupSvc),
 			application.NewService(systemSvc),
 		},

@@ -5,6 +5,7 @@ import {
   CustomerService,
   WorksheetService,
   SearchService,
+  TitleService,
   BackupService,
   SystemService,
 } from "../bindings/hgsys/pkg/app";
@@ -19,6 +20,7 @@ import WorksheetPanel from "./components/WorksheetPanel.vue";
 import SearchDialog from "./components/SearchDialog.vue";
 import BackupRestoreDialog from "./components/BackupRestoreDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
+import TitleManageDialog from "./components/TitleManageDialog.vue";
 
 // ---- customer 狀態 ---------------------------------------------------------
 const currentCustomer = ref<Customer | null>(null);
@@ -33,8 +35,16 @@ const currentWorksheet = ref<Worksheet | null>(null);
 const worksheetMode = ref<EditMode>("inhibit");
 const worksheetSnapshot = ref<Worksheet | null>(null);
 
+// ---- 稱謂清單 --------------------------------------------------------------
+const titles = ref<string[]>([]);
+async function refreshTitles() {
+  const list = await TitleService.List();
+  titles.value = (list ?? []).filter((t): t is string => typeof t === "string");
+}
+
 // ---- dialog 狀態 -----------------------------------------------------------
 const showSearch = ref(false);
+const showTitleManage = ref(false);
 const backupState = ref<{ savepath: string; mode: "backup" | "restore" } | null>(null);
 const info = ref<{
   title: string;
@@ -118,6 +128,7 @@ onMounted(async () => {
   Events.On("menu:restore", () => { onMenuRestore(); });
 
   await refreshTotal();
+  await refreshTitles();
   const pending = await SystemService.PendingUpdateMessage();
   if (pending) {
     info.value = {
@@ -152,7 +163,7 @@ function cancelCustomerEdit() {
   setCustomerMode("none");
 }
 
-async function saveCustomer(draft: Customer) {
+async function performSaveCustomer(draft: Customer) {
   try {
     if (customerMode.value === "append") {
       const newId = await CustomerService.Insert(draft);
@@ -174,6 +185,43 @@ async function saveCustomer(draft: Customer) {
       variant: "error",
     };
   }
+}
+
+async function saveCustomer(draft: Customer) {
+  // modify 模式下, 若稱謂既非空字串也不在 canonical 清單中, 視為舊髒資料.
+  // 跳出確認框讓使用者選擇「加入清單」或「修正」.
+  if (
+    customerMode.value === "modify" &&
+    draft.title !== "" &&
+    !titles.value.includes(draft.title)
+  ) {
+    info.value = {
+      title: "稱謂不在清單中",
+      message: `「${draft.title}」不在既有稱謂清單中。<br/>要將它加入清單後存檔, 還是回去修正?`,
+      variant: "confirm",
+      confirmLabel: "加入清單",
+      cancelLabel: "修正",
+      onConfirm: async () => {
+        info.value = null;
+        await TitleService.Add(draft.title);
+        await refreshTitles();
+        await performSaveCustomer(draft);
+      },
+    };
+    return;
+  }
+  await performSaveCustomer(draft);
+}
+
+// ---- 稱謂管理 dialog --------------------------------------------------------
+async function onAddTitle(name: string) {
+  await TitleService.Add(name);
+  await refreshTitles();
+}
+
+async function onRemoveTitle(name: string) {
+  await TitleService.Remove(name);
+  await refreshTitles();
 }
 
 function confirmDeleteCustomer() {
@@ -374,12 +422,14 @@ const historyFrozen = computed(() =>
           :current="currentCustomer"
           :mode="customerMode"
           :total="customerTotal"
+          :titles="titles"
           @append="startAppendCustomer"
           @modify="startModifyCustomer"
           @save="saveCustomer"
           @cancel="cancelCustomerEdit"
           @remove="confirmDeleteCustomer"
           @search="showSearch = true"
+          @manage-titles="showTitleManage = true"
         />
         <WorksheetHistoryTable
           :rows="worksheetHistory"
@@ -403,6 +453,13 @@ const historyFrozen = computed(() =>
       v-if="showSearch"
       @close="showSearch = false"
       @accept="onAcceptSearch"
+    />
+    <TitleManageDialog
+      v-if="showTitleManage"
+      :titles="titles"
+      @close="showTitleManage = false"
+      @add="onAddTitle"
+      @remove="onRemoveTitle"
     />
     <BackupRestoreDialog
       v-if="backupState"
