@@ -35,7 +35,7 @@ const emit = defineEmits<{
   min-width: 360px;
 }
 .info-dialog.error .message {
-  color: #c0392b;
+  color: var(--error-fg);
 }
 .message {
   font-size: 15px;

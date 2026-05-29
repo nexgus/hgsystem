@@ -81,7 +81,7 @@ const visibleRows = computed(() => props.rows);
 }
 td.empty {
   text-align: center;
-  color: #999;
+  color: var(--placeholder-fg);
   padding: 12px;
 }
 tr {

@@ -21,8 +21,8 @@ const emit = defineEmits<{
   (e: "search"): void;
 }>();
 
-// Form state mirrors `props.current` when not editing. Live values are kept
-// here so the user's typing is preserved across edit/cancel cycles.
+// 非編輯狀態時, 表單內容鏡射 `props.current`. 編輯期間的即時值保留於此,
+// 使用者輸入因此能跨越編輯/取消的循環而不流失.
 const form = ref<Customer>(emptyCustomer());
 
 function adopt(c: Customer | null) {

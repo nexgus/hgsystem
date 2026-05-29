@@ -7,12 +7,11 @@ import (
 	"time"
 )
 
-// YearNone is the sentinel year stored when only month/day are known.
+// YearNone 為僅知月 / 日時所存放之 sentinel 年份.
 const YearNone = 9996
 
-// ToROCYear converts a Gregorian year to the ROC (民國) year.
-// Year 0 does not exist in the ROC calendar; results ≤ 0 are shifted by an
-// extra -1 so the BC range jumps over the non-existent year zero.
+// ToROCYear 將西元年轉為民國年.
+// 民國曆中無第 0 年; 結果 ≤ 0 者會額外減 1, 使西元前的範圍跳過不存在的零年.
 func ToROCYear(commonYear int) int {
 	y := commonYear - 1911
 	if y <= 0 {
@@ -21,8 +20,7 @@ func ToROCYear(commonYear int) int {
 	return y
 }
 
-// ToCommonYear converts an ROC year to a Gregorian year. Year 0 is treated as
-// "year unknown" and returns the YearNone sentinel.
+// ToCommonYear 將民國年轉為西元年. 第 0 年視為「年份未知」, 回傳 YearNone sentinel.
 func ToCommonYear(rocYear int) int {
 	if rocYear == 0 {
 		return YearNone
@@ -33,8 +31,8 @@ func ToCommonYear(rocYear int) int {
 	return rocYear + 1912
 }
 
-// ParseROCDate parses "MM/DD" or "YYY/MM/DD". Year-less form fills YearNone.
-// Returns nil when the format is wrong or month/day are zero.
+// ParseROCDate 解析 "MM/DD" 或 "YYY/MM/DD". 缺年份的格式以 YearNone 填入.
+// 格式錯誤或月 / 日為零時回傳 nil.
 func ParseROCDate(s string) *time.Time {
 	parts := strings.Split(s, "/")
 	var year, month, day int
@@ -66,8 +64,8 @@ func ParseROCDate(s string) *time.Time {
 	return &t
 }
 
-// FormatROCDate formats a time as ROC date. YearNone omits the year ("MM/DD");
-// nil renders as "0/00/00" to match the legacy app.
+// FormatROCDate 將 time 格式化為民國日期. 年份為 YearNone 時省略年份 ("MM/DD");
+// nil 則格式化為 "0/00/00", 以對齊舊版程式.
 func FormatROCDate(t *time.Time) string {
 	if t == nil {
 		return "0/00/00"

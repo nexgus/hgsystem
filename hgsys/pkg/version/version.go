@@ -1,11 +1,11 @@
 package version
 
-// String is the human-readable application version. Used in window titles,
-// the "有關" dialog, and the self-update marker.
+// String 為給人看的應用程式版本字串. 用於視窗標題, 「有關」對話框, 以及自我
+// 更新標記檔.
 const String = "0.7.0"
 
-// GitCommitHash and GoVersion are injected at build time via -ldflags by
-// build.sh. They default to empty when running `go run` ad-hoc.
+// GitCommitHash 與 GoVersion 由 build.sh 於建置時透過 -ldflags 注入.
+// 以 `go run` 臨時執行時, 預設為空字串.
 var (
 	GitCommitHash string
 	GoVersion     string

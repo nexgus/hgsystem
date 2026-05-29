@@ -1,7 +1,7 @@
-// Package applog sets up the hgsystem logger. It writes to the OS-conventional
-// log directory (~/Library/Logs/hgsystem on macOS, %LOCALAPPDATA%\hgsystem\logs
-// on Windows, $XDG_STATE_HOME/hgsystem/logs elsewhere) using a per-launch file
-// named YYMMDD_NNNN.log where NNNN is a same-day serial starting at 0001.
+// Package applog 為 hgsystem 設定 logger. 它會依各 OS 慣用的 log 目錄
+// (macOS 為 ~/Library/Logs/hgsystem, Windows 為 %LOCALAPPDATA%\hgsystem\logs,
+// 其他為 $XDG_STATE_HOME/hgsystem/logs) 寫入每次啟動一份的 log 檔, 檔名為
+// YYMMDD_NNNN.log; 其中 NNNN 為當日流水號, 自 0001 起算.
 package applog
 
 import (
@@ -18,12 +18,12 @@ import (
 
 const loggerName = "hgsystem"
 
-// LogFile is the path of the file the logger is writing to (set by Setup).
+// LogFile 為 logger 目前寫入之檔案路徑 (由 Setup 設定).
 var LogFile string
 
-// Setup wires slog with two handlers: a console handler that respects debug
-// and a file handler that always records DEBUG and up. Returns the file path
-// it opened (also stored in LogFile).
+// Setup 為 slog 註冊兩個 handler: 一個會依 debug 旗標調整等級的 console handler,
+// 以及一個無論如何皆記錄 DEBUG 以上的 file handler. 回傳實際開啟的檔案路徑
+// (同時存於 LogFile).
 func Setup(debug bool) (string, error) {
 	dir, err := defaultLogDir()
 	if err != nil {
@@ -91,7 +91,7 @@ func nextLogPath(dir string) string {
 	return filepath.Join(dir, fmt.Sprintf("%s_%04d.log", prefix, maxSeq+1))
 }
 
-// multiHandler fans a slog record out to every wrapped handler.
+// multiHandler 將一筆 slog record 分送至所有包裹的 handler.
 type multiHandler []slog.Handler
 
 func (m multiHandler) Enabled(ctx context.Context, lvl slog.Level) bool {

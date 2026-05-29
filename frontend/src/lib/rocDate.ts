@@ -1,6 +1,5 @@
-// ROC (民國) <-> Gregorian conversions, mirroring pkg/domain/dates.go.
-// Year 0 does not exist in the ROC calendar; YEAR_NONE (9996) is the sentinel
-// stored when only month/day are known.
+// 民國 (ROC) 與西元年的互轉, 對應 pkg/domain/dates.go.
+// 民國紀年沒有 0 年; YEAR_NONE (9996) 為僅知月 / 日時所存放之 sentinel 值.
 
 export const YEAR_NONE = 9996;
 
@@ -16,8 +15,7 @@ export function toCommonYear(rocYear: number): number {
   return rocYear + 1912;
 }
 
-// Parse "MM/DD" or "YYY/MM/DD". Returns null when the format is wrong or
-// month/day are zero.
+// 解析 "MM/DD" 或 "YYY/MM/DD". 格式錯誤或月 / 日為 0 時回傳 null.
 export function parseROCDate(s: string): Date | null {
   const parts = s.split("/").map((p) => p.trim());
   let year = YEAR_NONE;
@@ -49,15 +47,15 @@ export function formatROCDate(d: Date | string | null | undefined): string {
   return `${toROCYear(y)}/${pad(m)}/${pad(day)}`;
 }
 
-// Convert separate ROC year / month / day inputs to a JS Date (UTC) or null.
-// Year 0 + month 0 + day 0 → null. Year 0 with non-zero m/d uses YEAR_NONE.
+// 將分開的民國年 / 月 / 日輸入轉成 JS Date (UTC) 或 null.
+// 年 0 + 月 0 + 日 0 → null. 年 0 搭配非 0 的月 / 日則以 YEAR_NONE 代表.
 export function fromROCParts(year: number, month: number, day: number): Date | null {
   if (year === 0 && month === 0 && day === 0) return null;
   const y = year === 0 ? YEAR_NONE : toCommonYear(year);
   return new Date(Date.UTC(y, (month || 1) - 1, day || 1));
 }
 
-// Reverse of fromROCParts — split a stored ISO/date back into ROC year/m/d.
+// fromROCParts 的反向操作 — 把儲存的 ISO / date 拆回民國年 / 月 / 日.
 export function toROCParts(d: Date | string | null | undefined): {
   year: number;
   month: number;
@@ -81,7 +79,7 @@ const DAYS_PER_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 export function daysInMonth(rocYear: number, month: number): number {
   if (month <= 0 || month > 12) return 31;
   if (month !== 2) return DAYS_PER_MONTH[month];
-  // ROC year 0 = unknown — be permissive and allow 29.
+  // 民國 0 年 = 未知 — 採寬鬆策略, 允許到 29 日.
   if (rocYear === 0) return 29;
   const common = toCommonYear(rocYear);
   const isLeap = (common % 4 === 0 && common % 100 !== 0) || common % 400 === 0;

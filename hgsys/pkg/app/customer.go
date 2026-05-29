@@ -1,9 +1,8 @@
-// Package app contains the Wails service bindings exposed to the Vue frontend.
+// Package app 內含暴露給 Vue frontend 的 Wails service binding.
 //
-// Each *Service type holds repository / coordinator references and exposes a
-// thin set of methods callable from JS via wails3 generate bindings. Methods
-// return plain values (no Mongo / Wails types) so the generated TS API stays
-// readable.
+// 每個 *Service 型別持有 repository / coordinator 參考, 並提供一組精簡的方法,
+// 可透過 wails3 generate bindings 由 JS 呼叫. 方法回傳純粹值 (不含 Mongo /
+// Wails 型別), 讓產生的 TS API 保持易讀.
 package app
 
 import (
@@ -16,9 +15,8 @@ import (
 	"hgsys/pkg/repository"
 )
 
-// CustomerService binds the customer CRUD methods. Coordination state
-// (current selection, edit mode) lives entirely on the frontend store —
-// Go just returns data and persists changes.
+// CustomerService 為客戶 CRUD 方法的 binding. 協調狀態 (目前選取項目, 編輯模式)
+// 完全交由 frontend store 管理 — Go 端僅負責回傳資料與保存變更.
 type CustomerService struct {
 	repo       *repository.CustomerRepository
 	worksheets *repository.WorksheetRepository
@@ -33,12 +31,12 @@ func NewCustomerService(r *repository.Repositories) *CustomerService {
 	}
 }
 
-// Count returns the total customer count.
+// Count 回傳客戶總數.
 func (s *CustomerService) Count() (int64, error) {
 	return s.repo.Count(context.Background())
 }
 
-// Get returns the customer with id, or an error if not found.
+// Get 回傳指定 id 的客戶, 若找不到則回傳 error.
 func (s *CustomerService) Get(id string) (*domain.Customer, error) {
 	c, err := s.repo.Get(context.Background(), id)
 	if err != nil {
@@ -50,7 +48,7 @@ func (s *CustomerService) Get(id string) (*domain.Customer, error) {
 	return c, nil
 }
 
-// Insert persists a new customer (id auto-generated when empty).
+// Insert 保存一筆新客戶 (id 為空時自動產生).
 func (s *CustomerService) Insert(c domain.Customer) (string, error) {
 	if c.Name == "" {
 		return "", errors.New("姓名不得為空白")
@@ -58,7 +56,7 @@ func (s *CustomerService) Insert(c domain.Customer) (string, error) {
 	return s.repo.Insert(context.Background(), &c)
 }
 
-// Update overwrites the customer at id with the supplied values.
+// Update 以給定的資料覆寫指定 id 的客戶.
 func (s *CustomerService) Update(id string, c domain.Customer) error {
 	if c.Name == "" {
 		return errors.New("姓名不得為空白")
@@ -66,8 +64,7 @@ func (s *CustomerService) Update(id string, c domain.Customer) error {
 	return s.repo.Replace(context.Background(), id, c)
 }
 
-// Delete removes the customer and cascades worksheet deletion. Returns the
-// number of worksheets deleted along with the customer.
+// Delete 刪除該客戶, 並串聯刪除其所有 worksheet. 回傳一併被刪除的 worksheet 數.
 func (s *CustomerService) Delete(id string) (int64, error) {
 	if err := s.repo.Delete(context.Background(), id); err != nil {
 		return 0, err
@@ -75,7 +72,7 @@ func (s *CustomerService) Delete(id string) (int64, error) {
 	return s.worksheets.DeleteForCustomer(context.Background(), id)
 }
 
-// SearchService is split out so the search dialog can have its own binding.
+// SearchService 獨立成型, 讓搜尋對話框擁有自己的 binding.
 type SearchService struct {
 	repo    *repository.CustomerRepository
 	history *repository.SearchHistoryRepository
@@ -85,7 +82,7 @@ func NewSearchService(r *repository.Repositories) *SearchService {
 	return &SearchService{repo: r.Customers, history: r.SearchHistory}
 }
 
-// SearchCriteria mirrors the legacy search dialog inputs.
+// SearchCriteria 對應舊版搜尋對話框的輸入欄位.
 type SearchCriteria struct {
 	Name      string     `json:"name"`
 	Addr      string     `json:"addr"`
@@ -93,8 +90,8 @@ type SearchCriteria struct {
 	Birthdate *time.Time `json:"birthdate"`
 }
 
-// Search runs a regex-on-substring lookup over name/addr/phone plus an exact
-// match on birthdate. Empty fields are ignored.
+// Search 以子字串 regex 比對 name / addr / phone, 並以精確比對檢索 birthdate.
+// 空欄位會被忽略.
 func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 	filter := map[string]any{}
 	if c.Name != "" {
@@ -112,12 +109,12 @@ func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 	return s.repo.Find(context.Background(), filter)
 }
 
-// History returns the current session's search history.
+// History 回傳目前 session 的搜尋歷史.
 func (s *SearchService) History() ([]domain.Customer, error) {
 	return s.history.List(context.Background())
 }
 
-// Remember adds a customer to the current session's history (deduped).
+// Remember 將客戶加入目前 session 的歷史中 (會去重).
 func (s *SearchService) Remember(c domain.Customer) error {
 	return s.history.Remember(context.Background(), c)
 }

@@ -13,16 +13,16 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-// PullResult enumerates what `PullAndInstall` ended up doing.
+// PullResult 列舉 `PullAndInstall` 實際執行的結果.
 type PullResult int
 
 const (
-	PullUpToDate     PullResult = 0 // already on the remote tip; no restart needed
-	PullFastForward  PullResult = 1 // fast-forwarded; caller should Restart
-	PullUnexpected   PullResult = 2 // not fast-forward, or remote not found
+	PullUpToDate     PullResult = 0 // 已位於 remote tip; 不需重啟
+	PullFastForward  PullResult = 1 // 已 fast-forward; caller 應呼叫 Restart
+	PullUnexpected   PullResult = 2 // 非 fast-forward, 或找不到 remote
 )
 
-// FindRepoRoot walks up from `startDir` looking for a `.git` directory.
+// FindRepoRoot 從 `startDir` 往上搜尋, 尋找含 `.git` 目錄的位置.
 func FindRepoRoot(startDir string) (string, error) {
 	cur, err := filepath.Abs(startDir)
 	if err != nil {
@@ -40,15 +40,14 @@ func FindRepoRoot(startDir string) (string, error) {
 	}
 }
 
-// PullAndInstall fetches from `remoteName` and fast-forwards to `branch`,
-// falling back to `master` if `main` is missing (matches legacy behavior).
-// Only handles up-to-date and fast-forward cases cleanly; anything else
-// returns PullUnexpected with a detail string.
+// PullAndInstall 從 `remoteName` fetch, 並對 `branch` 進行 fast-forward;
+// 若 `main` 不存在則退回 `master` (對齊舊版行為).
+// 僅能乾淨處理「已是最新」與「fast-forward」兩種情況; 其他情況一律回傳
+// PullUnexpected 並附上 detail 字串.
 //
-// After a fast-forward, the Go binary is rebuilt via `go install` so the
-// next exec picks up the new code. If no Go toolchain is on PATH the build
-// step is skipped and the caller still gets PullFastForward — Restart will
-// re-exec the existing binary in that case.
+// fast-forward 完成後, 會以 `go install` 重新編譯 Go 執行檔, 讓下次 exec 載入
+// 新版程式碼. 若 PATH 中沒有 Go toolchain, 則跳過編譯步驟, caller 仍會收到
+// PullFastForward — 此時 Restart 會 re-exec 原本的執行檔.
 func PullAndInstall(repoRoot, remoteName, branch string) (PullResult, string, error) {
 	logger := slog.Default()
 	if remoteName == "" {
@@ -102,7 +101,7 @@ func PullAndInstall(repoRoot, remoteName, branch string) (PullResult, string, er
 		return PullUnexpected, "remote diverged (not fast-forward)", nil
 	}
 
-	// Apply fast-forward: move local branch ref + checkout the tree.
+	// 套用 fast-forward: 移動 local branch ref, 並 checkout 該 tree.
 	wt, err := repo.Worktree()
 	if err != nil {
 		return PullUnexpected, "", fmt.Errorf("worktree: %w", err)
@@ -112,7 +111,7 @@ func PullAndInstall(repoRoot, remoteName, branch string) (PullResult, string, er
 	}
 	branchRef := plumbing.NewBranchReferenceName(branch)
 	if _, err := repo.Reference(branchRef, false); err != nil {
-		// Branch doesn't exist locally — create it.
+		// 本地沒有此 branch — 建立之.
 		if err := repo.Storer.SetReference(plumbing.NewHashReference(branchRef, remoteHash)); err != nil {
 			return PullUnexpected, "", fmt.Errorf("create branch: %w", err)
 		}
@@ -158,14 +157,14 @@ func goInstall(repoRoot string) error {
 	return cmd.Run()
 }
 
-// MarkerFile writes the current version so the next launch can show
-// "已由 X 更新為 Y". Used together with Restart.
+// MarkerFile 寫入目前的版本字串, 讓下次啟動時能顯示「已由 X 更新為 Y」.
+// 搭配 Restart 一起使用.
 func WriteMarker(path, version string) error {
 	return os.WriteFile(path, []byte(version), 0o644)
 }
 
-// ReadAndClearMarker returns the previous version if a marker exists and then
-// removes the marker. Returns "" if no marker was found.
+// ReadAndClearMarker 若標記檔存在, 回傳前一版版本字串並一併刪除標記檔.
+// 找不到標記檔時回傳 "".
 func ReadAndClearMarker(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -178,9 +177,8 @@ func ReadAndClearMarker(path string) (string, error) {
 	return string(data), nil
 }
 
-// Restart re-execs the current binary in place (no new process). On Windows
-// syscall.Exec is unavailable so the caller should fall back to spawning a
-// new process and exiting.
+// Restart 就地 re-exec 目前的執行檔 (不會產生新 process). Windows 下無法使用
+// syscall.Exec, caller 應改以另起新 process 後結束自身的方式處理.
 func Restart(args []string) error {
 	exe, err := os.Executable()
 	if err != nil {

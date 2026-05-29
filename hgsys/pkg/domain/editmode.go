@@ -1,16 +1,16 @@
 package domain
 
-// EditMode represents the editing state of an editable panel.
+// EditMode 代表可編輯面板的編輯狀態.
 type EditMode int
 
 const (
-	EditNone    EditMode = 0 // Showing existing data; not editing.
-	EditAppend  EditMode = 1 // Adding a new record; fields editable, drawn red.
-	EditModify  EditMode = 2 // Modifying an existing record; fields editable, drawn red.
-	EditInhibit EditMode = 3 // Locked because the sibling panel is editing.
+	EditNone    EditMode = 0 // 顯示既有資料; 未在編輯.
+	EditAppend  EditMode = 1 // 新增資料; 欄位可編輯, 以紅色顯示.
+	EditModify  EditMode = 2 // 修改既有資料; 欄位可編輯, 以紅色顯示.
+	EditInhibit EditMode = 3 // 因相鄰面板正在編輯, 故被鎖定.
 )
 
-// IsEditable reports whether fields should be editable in the given mode.
+// IsEditable 回報在指定模式下欄位是否應為可編輯.
 func (m EditMode) IsEditable() bool {
 	return m == EditAppend || m == EditModify
 }

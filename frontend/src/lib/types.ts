@@ -1,6 +1,5 @@
-// Re-exports the Wails-generated Customer / Worksheet classes plus tiny
-// helpers. Keeping the type origin in the bindings means service signatures
-// match exactly when sending values back to Go.
+// 重新匯出 Wails 產生的 Customer / Worksheet 類別, 加上幾個小幫手函式.
+// 讓型別的源頭維持在 bindings, 這樣傳值回 Go 時 service 的簽章可以精確對齊.
 
 import {
   Customer,

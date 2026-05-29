@@ -38,7 +38,7 @@ const days = computed(() => {
 watch(
   () => parts.value.month,
   () => {
-    // When month changes the day may become invalid; clamp.
+    // 月份變更時, 原本的日數可能超出範圍, 在此夾到合法值.
     const max = daysInMonth(parts.value.year, parts.value.month);
     if (parts.value.day > max) {
       emitFromParts(parts.value.year, parts.value.month, max);

@@ -126,7 +126,7 @@ function onAccept() {
 }
 td.empty {
   text-align: center;
-  color: #999;
+  color: var(--placeholder-fg);
   padding: 12px;
 }
 </style>

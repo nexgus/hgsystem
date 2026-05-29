@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { Dialogs } from "@wailsio/runtime";
+import { Dialogs, Events } from "@wailsio/runtime";
 import {
   CustomerService,
   WorksheetService,
@@ -20,20 +20,20 @@ import SearchDialog from "./components/SearchDialog.vue";
 import BackupRestoreDialog from "./components/BackupRestoreDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 
-// ---- customer state ---------------------------------------------------------
+// ---- customer 狀態 ---------------------------------------------------------
 const currentCustomer = ref<Customer | null>(null);
 const customerMode = ref<EditMode>("none");
 const customerTotal = ref(0);
 const customerSnapshot = ref<Customer | null>(null);
 
-// ---- worksheet state --------------------------------------------------------
+// ---- worksheet 狀態 --------------------------------------------------------
 const worksheetHistory = ref<Worksheet[]>([]);
 const currentWorksheet = ref<Worksheet | null>(null);
-// Worksheet starts INHIBIT — no customer selected.
+// worksheet 初始為 INHIBIT — 尚未選擇任何客戶.
 const worksheetMode = ref<EditMode>("inhibit");
 const worksheetSnapshot = ref<Worksheet | null>(null);
 
-// ---- dialog state -----------------------------------------------------------
+// ---- dialog 狀態 -----------------------------------------------------------
 const showSearch = ref(false);
 const backupState = ref<{ savepath: string; mode: "backup" | "restore" } | null>(null);
 const info = ref<{
@@ -46,7 +46,11 @@ const info = ref<{
 } | null>(null);
 const appVersion = ref("");
 
-// ---- coordination: customer mode → worksheet inhibit -----------------------
+// isMac 控制是否渲染視窗內 MenuBar.vue. Mac 上由 Go 端建立原生選單列,
+// menu item 透過 event 觸發前端的 onMenu* handler.
+const isMac = ref(false);
+
+// ---- 連動: customer 編輯模式 → worksheet 禁制 -----------------------------
 function applyWorksheetInhibit(inhibited: boolean) {
   if (inhibited) {
     worksheetMode.value = "inhibit";
@@ -73,7 +77,7 @@ function setWorksheetMode(m: EditMode) {
   }
 }
 
-// ---- bootstrap --------------------------------------------------------------
+// ---- 啟動初始化 ------------------------------------------------------------
 async function refreshTotal() {
   customerTotal.value = Number(await CustomerService.Count());
 }
@@ -96,7 +100,7 @@ async function setCurrentCustomer(c: Customer | null) {
   } else {
     await clearHistory();
   }
-  // Customer presence drives worksheet inhibit when not actively editing.
+  // 非編輯狀態下, 是否有選定客戶決定 worksheet 的禁制狀態.
   if (worksheetMode.value !== "append" && worksheetMode.value !== "modify") {
     applyWorksheetInhibit(false);
   }
@@ -104,6 +108,15 @@ async function setCurrentCustomer(c: Customer | null) {
 
 onMounted(async () => {
   appVersion.value = await SystemService.Version();
+  isMac.value = (await SystemService.Platform()) === "darwin";
+
+  // 訂閱 Go 端原生 menu 發出的事件 (Mac 才會觸發, 但訂閱本身在所有平台都無害).
+  Events.On("menu:update", () => { onMenuUpdate(); });
+  Events.On("menu:about", () => { onMenuAbout(); });
+  Events.On("menu:exit", () => { onMenuExit(); });
+  Events.On("menu:backup", () => { onMenuBackup(); });
+  Events.On("menu:restore", () => { onMenuRestore(); });
+
   await refreshTotal();
   const pending = await SystemService.PendingUpdateMessage();
   if (pending) {
@@ -114,7 +127,7 @@ onMounted(async () => {
   }
 });
 
-// ---- customer actions -------------------------------------------------------
+// ---- customer 動作 ---------------------------------------------------------
 function startAppendCustomer() {
   customerSnapshot.value = currentCustomer.value;
   currentCustomer.value = emptyCustomer();
@@ -182,7 +195,7 @@ function confirmDeleteCustomer() {
   };
 }
 
-// ---- worksheet actions ------------------------------------------------------
+// ---- worksheet 動作 --------------------------------------------------------
 function startAppendWorksheet() {
   if (!currentCustomer.value) return;
   worksheetSnapshot.value = currentWorksheet.value;
@@ -263,7 +276,7 @@ function selectWorksheet(id: string) {
   if (w) currentWorksheet.value = w;
 }
 
-// ---- menu actions -----------------------------------------------------------
+// ---- 選單動作 --------------------------------------------------------------
 async function onMenuUpdate() {
   const result = await SystemService.Update();
   if (result.state === "uptodate") {
@@ -284,7 +297,7 @@ async function onMenuUpdate() {
       variant: "error",
     };
   }
-  // "fastforward" path restarts via os.Exec; this code is never reached.
+  // "fastforward" 分支會經由 os.Exec 重啟, 因此這段程式不會執行到.
 }
 
 function onMenuAbout() {
@@ -329,14 +342,14 @@ async function onMenuRestore() {
   backupState.value = { savepath: resolved, mode: "restore" };
 }
 
-// ---- search dialog ---------------------------------------------------------
+// ---- 搜尋對話框 ------------------------------------------------------------
 async function onAcceptSearch(c: Customer) {
   showSearch.value = false;
   await SearchService.Remember(c);
   await setCurrentCustomer(c);
 }
 
-// Frozen when sibling is editing — block clicks on history rows.
+// 任一相鄰面板進入編輯狀態時, 將歷史列鎖死, 不接受點擊.
 const historyFrozen = computed(() =>
   customerMode.value === "append" ||
   customerMode.value === "modify" ||
@@ -348,6 +361,7 @@ const historyFrozen = computed(() =>
 <template>
   <div class="app-shell">
     <MenuBar
+      v-if="!isMac"
       @update="onMenuUpdate"
       @about="onMenuAbout"
       @exit="onMenuExit"

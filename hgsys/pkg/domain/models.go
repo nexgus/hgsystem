@@ -1,5 +1,5 @@
-// Package domain holds pure data types for the hgsystem app. No Mongo or UI
-// dependencies live here so it can be unit-tested in isolation.
+// Package domain 內含 hgsystem 應用程式之純資料型別. 此處不含 Mongo 或 UI 相依,
+// 以便可獨立進行 unit test.
 package domain
 
 import (
@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-// Customer mirrors the legacy `customers` collection document.
+// Customer 對應舊版 `customers` collection 的文件結構.
 //
-// Phones is the ";"-separated raw string (up to 4 numbers) kept verbatim to
-// stay compatible with historical Mongo dumps.
+// Phones 為以 ";" 分隔的原始字串 (最多 4 組號碼), 原樣保留以與歷史 Mongo dump
+// 相容.
 type Customer struct {
 	ID        string     `bson:"_id,omitempty"   json:"id"`
 	Name      string     `bson:"name"            json:"name"`
@@ -21,7 +21,7 @@ type Customer struct {
 	Broker    string     `bson:"broker"          json:"broker"`
 }
 
-// PhoneList splits Phones into exactly 4 slots, padding with empty strings.
+// PhoneList 將 Phones 拆為恰好 4 個欄位, 不足者以空字串補齊.
 func (c Customer) PhoneList() [4]string {
 	var out [4]string
 	if c.Phones == "" {
@@ -34,10 +34,10 @@ func (c Customer) PhoneList() [4]string {
 	return out
 }
 
-// Worksheet mirrors the legacy `worksheets` collection document.
+// Worksheet 對應舊版 `worksheets` collection 的文件結構.
 //
-// CID is the foreign key to Customer.ID. Prescription columns keep their
-// historical string representation (free-form text from the eye-care form).
+// CID 為對應 Customer.ID 的外鍵. 處方相關欄位沿用舊有字串表示 (來自驗光單上的
+// 自由格式文字).
 type Worksheet struct {
 	ID          string     `bson:"_id,omitempty"  json:"id"`
 	CID         string     `bson:"cid"            json:"cid"`

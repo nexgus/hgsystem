@@ -1,16 +1,39 @@
+/* 配色 token 集中於此. 預設為 light mode, 結尾 @media (prefers-color-scheme: dark)
+   覆寫同名 token, 即可整套切到暗色. webview 端 color-scheme: light dark 讓
+   browser 內建 form control / scrollbar 也跟著系統主題, 並讓 native window
+   背景 (main.go 未設 BackgroundColour) 透出對應色. */
 :root {
   --font-stack: "Microsoft YaHei", "Microsoft JhengHei", "PingFang TC",
     "Helvetica Neue", Arial, sans-serif;
-  --border-color: #c9c9c9;
-  --row-highlight-bg: #6495ed;
-  --row-highlight-fg: #ffffff;
   --label-width: 65px;
   --field-height: 28px;
+
+  --bg: #f5f5f7;
+  --fg: #1c1c1e;
   --section-bg: #fafafa;
+  --field-bg: #ffffff;
+  --field-disabled-bg: #ececef;
+  --border-color: #c6c6c8;
+  --border-row: #e5e5ea;
+  --button-bg: #ffffff;
+  --button-hover-bg: #f0f0f0;
+  --button-disabled-fg: #a0a0a4;
+  --menu-bar-bg: #ececef;
+  --menu-popup-bg: #ffffff;
+  --menu-popup-hover-bg: #e8f0fe;
+  --dialog-bg: #ffffff;
+  --dialog-backdrop: rgba(0, 0, 0, 0.4);
+  --row-highlight-bg: #6495ed;
+  --row-highlight-fg: #ffffff;
+  --error-fg: #c0392b;
+  --edit-red: #d11;
+  --placeholder-fg: #8e8e93;
+
+  color-scheme: light dark;
   font-family: var(--font-stack);
   font-size: 14px;
-  color: #1c1c1c;
-  background: #ffffff;
+  color: var(--fg);
+  background-color: var(--bg);
 }
 
 * {
@@ -23,7 +46,8 @@ body,
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #ffffff;
+  background-color: var(--bg);
+  color: var(--fg);
 }
 
 button {
@@ -32,21 +56,21 @@ button {
   padding: 6px 12px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: #f4f4f4;
+  background-color: var(--button-bg);
+  color: inherit;
   cursor: pointer;
 }
 
 button:hover:not(:disabled) {
-  background: #e8e8e8;
+  background-color: var(--button-hover-bg);
 }
 
 button:disabled {
-  color: #aaa;
+  color: var(--button-disabled-fg);
   cursor: not-allowed;
 }
 
-input[type="text"],
-input[type="number"],
+input,
 select,
 textarea {
   font-family: inherit;
@@ -54,18 +78,43 @@ textarea {
   padding: 4px 6px;
   border: 1px solid var(--border-color);
   border-radius: 3px;
-  background: #fff;
+  background-color: var(--field-bg);
+  color: var(--fg);
   height: var(--field-height);
+}
+
+/* webkit 對 input / select / textarea 預設帶 3D inset appearance: 左上暗影,
+   右下亮邊. dark mode 下右下亮邊變成白色痕跡. 全部關掉 appearance / box-shadow
+   / outline. number 的 spinner 因此消失 (使用者改鍵盤輸入即可), select 的
+   下拉箭頭也消失, 故下方為 select 補上 SVG 三角形作為視覺指示. */
+input,
+select,
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  outline: none;
+}
+
+/* 補回 select 的下拉箭頭. SVG stroke 用 #888 中灰, 在 light / dark 兩種主題
+   下都可辨識. */
+select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 22px;
 }
 
 input.edit-red,
 select.edit-red {
-  color: red;
+  color: var(--edit-red);
 }
 
 input:disabled,
-select:disabled {
-  background: #f0f0f0;
+select:disabled,
+textarea:disabled {
+  background-color: var(--field-disabled-bg);
+  color: var(--fg);
 }
 
 fieldset {
@@ -73,7 +122,7 @@ fieldset {
   border-radius: 4px;
   padding: 8px 12px;
   margin: 0;
-  background: var(--section-bg);
+  background-color: var(--section-bg);
 }
 
 fieldset > legend {
@@ -90,19 +139,19 @@ table {
 th,
 td {
   padding: 4px 8px;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--border-row);
   text-align: left;
   white-space: nowrap;
 }
 
 tr.selected td {
-  background: var(--row-highlight-bg);
+  background-color: var(--row-highlight-bg);
   color: var(--row-highlight-fg);
 }
 
 .menu-bar {
   display: flex;
-  background: #f0f0f0;
+  background-color: var(--menu-bar-bg);
   border-bottom: 1px solid var(--border-color);
   padding: 4px;
   gap: 8px;
@@ -113,7 +162,7 @@ tr.selected td {
 }
 
 .menu-bar button.menu-button {
-  background: transparent;
+  background-color: transparent;
   border: none;
   padding: 4px 12px;
 }
@@ -122,7 +171,7 @@ tr.selected td {
   position: absolute;
   top: 100%;
   left: 0;
-  background: #fff;
+  background-color: var(--menu-popup-bg);
   border: 1px solid var(--border-color);
   min-width: 140px;
   padding: 4px 0;
@@ -135,12 +184,12 @@ tr.selected td {
   width: 100%;
   text-align: left;
   border: none;
-  background: transparent;
+  background-color: transparent;
   padding: 6px 12px;
 }
 
 .menu-bar .menu-popup button:hover {
-  background: #e8f0fe;
+  background-color: var(--menu-popup-hover-bg);
 }
 
 .app-shell {
@@ -158,7 +207,7 @@ tr.selected td {
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background-color: var(--dialog-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -166,7 +215,8 @@ tr.selected td {
 }
 
 .dialog {
-  background: #fff;
+  background-color: var(--dialog-bg);
+  color: var(--fg);
   border-radius: 6px;
   padding: 16px;
   min-width: 320px;
@@ -192,4 +242,42 @@ tr.selected td {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --fg: #f5f5f7;
+    /* dark mode 下 fieldset 與主背景同色, 不形成「凸起卡片」的視覺,
+       純靠 border 做區塊分組. */
+    --section-bg: transparent;
+    /* dark mode 下 input 背景比視窗底稍亮一階, 完全靠色塊區分而非邊框 —
+       避免 webkit 對 form control 的 native inner styling 在黑底上呈現
+       亮色邊框. */
+    --field-bg: #2c2c2e;
+    --field-disabled-bg: #242426;
+    --border-color: #48484a;
+    --border-row: #3a3a3c;
+    --button-bg: #2c2c2e;
+    --button-hover-bg: #3a3a3c;
+    --button-disabled-fg: #6a6a6c;
+    --menu-bar-bg: #2c2c2e;
+    --menu-popup-bg: #2c2c2e;
+    --menu-popup-hover-bg: #3a4a5e;
+    --dialog-bg: #2c2c2e;
+    --dialog-backdrop: rgba(0, 0, 0, 0.6);
+    --row-highlight-bg: #4a76c2;
+    --error-fg: #ff6b5b;
+    --edit-red: #ff6b5b;
+    --placeholder-fg: #8e8e93;
+  }
+
+  /* dark mode 下 input / select / textarea 不用 border, 純靠 field-bg 比
+     視窗底稍亮的色塊區分. 這樣 webkit 不會加任何 inner ridge / 3D 殘留. */
+  input[type="text"],
+  input[type="number"],
+  select,
+  textarea {
+    border: none;
+  }
 }

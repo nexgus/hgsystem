@@ -1,5 +1,5 @@
-// Command hgsystem is the entry point for the Wails desktop app. It parses
-// CLI flags, opens MongoDB, sets up logging, and hands control to Wails.
+// Command hgsystem 為 Wails 桌面應用程式的進入點. 它會解析
+// 命令列旗標, 開啟 MongoDB 連線, 設定 logging, 並把控制權交給 Wails.
 package main
 
 import (
@@ -10,17 +10,19 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"hgsys/pkg/app"
 	"hgsys/pkg/applog"
+	"hgsys/pkg/repository"
 	"hgsys/pkg/services"
 	"hgsys/pkg/version"
 )
 
-// frontend assets. build.sh copies frontend/dist into ./dist before `go build`
-// so Go's embed (which cannot use `..`) finds them alongside this file.
+// 前端 assets. build.sh 會在執行 `go build` 之前先把 frontend/dist 複製到 ./dist,
+// 這樣 Go 的 embed (不支援 `..`) 才能在這個檔案旁邊找到它們.
 //
 //go:embed all:dist
 var assets embed.FS
@@ -31,6 +33,7 @@ func main() {
 		port    = flag.Int("p", 27017, "MongoDB port number (also --port).")
 		test    = flag.Bool("T", false, "Test mode: auto-restart instead of \"up to date\" dialog on Update (also --test).")
 		debug   = flag.Bool("d", false, "Enable DEBUG-level console output (also --debug).")
+		nodb    = flag.Bool("nodb", false, "Skip MongoDB connection on startup (GUI-only mode, faster start).")
 		showVer = flag.Bool("version", false, "Print version and exit.")
 	)
 	flag.StringVar(host, "host", "localhost", "MongoDB host address.")
@@ -51,17 +54,26 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client, err := app.Connect(ctx, app.Config{Host: *host, Port: *port})
+	client, err := app.Connect(ctx, app.Config{Host: *host, Port: *port, NoDB: *nodb})
 	if err != nil {
-		slog.Error("mongo connect failed", "err", err)
+		slog.Warn("無法連線到 MongoDB, 以僅檢視 GUI 模式啟動 (資料操作將失敗)", "err", err)
+	}
+	if client == nil {
+		slog.Error("無法建立 mongo client", "err", err)
 		os.Exit(1)
 	}
 	defer func() { _ = client.Disconnect(ctx) }()
 
-	repos, err := app.PrepareRepositories(ctx, client)
-	if err != nil {
-		slog.Error("prepare repositories failed", "err", err)
-		os.Exit(1)
+	var repos *repository.Repositories
+	if *nodb {
+		// --nodb 模式下不嘗試清空 search history (該操作也會 5 秒 timeout).
+		repos = repository.New(client)
+	} else {
+		repos, err = app.PrepareRepositories(ctx, client)
+		if err != nil {
+			slog.Warn("初始化 repository 失敗, 以僅檢視 GUI 模式繼續", "err", err)
+			repos = repository.New(client)
+		}
 	}
 
 	repoRoot := detectRepoRoot()
@@ -69,7 +81,7 @@ func main() {
 	customerSvc := app.NewCustomerService(repos)
 	worksheetSvc := app.NewWorksheetService(repos)
 	searchSvc := app.NewSearchService(repos)
-	// Backup/System services need the *App for events / Quit; injected after New.
+	// Backup / System service 需要 *App 來發送事件 / 結束程式; 在 New 之後再注入.
 	backupSvc := app.NewBackupService(nil)
 	systemSvc := app.NewSystemService(nil, repoRoot, *test)
 
@@ -91,21 +103,23 @@ func main() {
 		},
 	})
 
-	// Now that we have *App, hand it to services that need to emit events / quit.
+	// 現在有了 *App, 把它交給需要發送事件 / 結束程式的 service.
 	backupSvc.SetApp(wailsApp)
 	systemSvc.SetApp(wailsApp)
 
+	// macOS 上以原生選單列取代視窗內 MenuBar.vue (前端依 SystemService.Platform()
+	// 決定不渲染 MenuBar). 其他平台維持視窗內 menu, 不在此處建立原生 menu.
+	if runtime.GOOS == "darwin" {
+		setupMacMenu(wailsApp)
+	}
+
 	wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title: fmt.Sprintf("豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (%s)", version.String),
-		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 50,
-			Backdrop:                application.MacBackdropTranslucent,
-			TitleBar:                application.MacTitleBarHiddenInset,
-		},
-		BackgroundColour: application.NewRGB(255, 255, 255),
-		URL:              "/",
-		Width:            1400,
-		Height:           900,
+		// 不指定 BackgroundColour, 讓 native window 透出 → 由前端 CSS 的
+		// color-scheme + Canvas 系統色決定亮 / 暗主題, 與 macOS 系統設定一致.
+		URL:    "/",
+		Width:  1400,
+		Height: 900,
 	})
 
 	if err := wailsApp.Run(); err != nil {
@@ -114,9 +128,33 @@ func main() {
 	}
 }
 
-// detectRepoRoot finds the source repo root so the updater can pull the right
-// directory. Falls back to the executable's directory when running from an
-// installed binary outside the source tree.
+// setupMacMenu 建立 macOS 原生選單列. 「系統」「資料」項目對應視窗內 MenuBar.vue
+// 的功能, click 時透過 event 通知前端, 由前端共用同一組 handler.
+//
+// Edit / Window 為 Mac 標準角色 (剪下 / 複製 / 貼上 / Minimize / Zoom 等),
+// AppMenu 角色提供 About / Quit / Hide 等系統慣例項目.
+func setupMacMenu(app *application.App) {
+	menu := app.NewMenu()
+	menu.AddRole(application.AppMenu)
+
+	sys := menu.AddSubmenu("系統")
+	sys.Add("更新").OnClick(func(*application.Context) { app.Event.Emit("menu:update") })
+	sys.Add("有關").OnClick(func(*application.Context) { app.Event.Emit("menu:about") })
+	sys.AddSeparator()
+	sys.Add("離開").OnClick(func(*application.Context) { app.Event.Emit("menu:exit") })
+
+	data := menu.AddSubmenu("資料")
+	data.Add("備份").OnClick(func(*application.Context) { app.Event.Emit("menu:backup") })
+	data.Add("還原").OnClick(func(*application.Context) { app.Event.Emit("menu:restore") })
+
+	menu.AddRole(application.EditMenu)
+	menu.AddRole(application.WindowMenu)
+
+	app.Menu.SetApplicationMenu(menu)
+}
+
+// detectRepoRoot 找出原始碼 repo 的根目錄, 讓 updater 可以對正確的目錄做 pull.
+// 若是從原始碼樹之外的已安裝執行檔執行, 則回退到執行檔所在的目錄.
 func detectRepoRoot() string {
 	if exe, err := os.Executable(); err == nil {
 		if root, err := services.FindRepoRoot(filepath.Dir(exe)); err == nil {

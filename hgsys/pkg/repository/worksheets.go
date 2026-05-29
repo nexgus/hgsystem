@@ -9,7 +9,7 @@ import (
 	"hgsys/pkg/domain"
 )
 
-// WorksheetRepository wraps CRUD on the `worksheets` collection.
+// WorksheetRepository 封裝 `worksheets` collection 的 CRUD 操作.
 type WorksheetRepository struct {
 	coll *mongo.Collection
 }
@@ -18,7 +18,7 @@ func NewWorksheetRepository(db *mongo.Database) *WorksheetRepository {
 	return &WorksheetRepository{coll: db.Collection("worksheets")}
 }
 
-// FindForCustomer returns all worksheets belonging to the customer with cid.
+// FindForCustomer 回傳 cid 所對應客戶之所有 worksheet.
 func (r *WorksheetRepository) FindForCustomer(ctx context.Context, cid string) ([]domain.Worksheet, error) {
 	cur, err := r.coll.Find(ctx, bson.M{"cid": cid})
 	if err != nil {
@@ -32,7 +32,7 @@ func (r *WorksheetRepository) FindForCustomer(ctx context.Context, cid string) (
 	return out, nil
 }
 
-// Insert stores `w`, auto-assigning a new stringified ObjectId if ID is empty.
+// Insert 儲存 `w`; 若 ID 為空, 會自動指派新的字串化 ObjectId.
 func (r *WorksheetRepository) Insert(ctx context.Context, w *domain.Worksheet) (string, error) {
 	if w.ID == "" {
 		w.ID = newID()
@@ -43,14 +43,14 @@ func (r *WorksheetRepository) Insert(ctx context.Context, w *domain.Worksheet) (
 	return w.ID, nil
 }
 
-// Replace overwrites the worksheet at `id` with `w` (ID is preserved).
+// Replace 以 `w` 覆寫 `id` 對應的 worksheet (ID 保留不變).
 func (r *WorksheetRepository) Replace(ctx context.Context, id string, w domain.Worksheet) error {
 	w.ID = ""
 	_, err := r.coll.ReplaceOne(ctx, bson.M{"_id": id}, w)
 	return err
 }
 
-// Delete removes a single worksheet by id; returns deleted count (0 or 1).
+// Delete 依 id 刪除單筆 worksheet; 回傳被刪除的筆數 (0 或 1).
 func (r *WorksheetRepository) Delete(ctx context.Context, id string) (int64, error) {
 	res, err := r.coll.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
@@ -59,7 +59,7 @@ func (r *WorksheetRepository) Delete(ctx context.Context, id string) (int64, err
 	return res.DeletedCount, nil
 }
 
-// DeleteForCustomer cascades deletion of all worksheets owned by cid.
+// DeleteForCustomer 串聯刪除 cid 所屬之所有 worksheet.
 func (r *WorksheetRepository) DeleteForCustomer(ctx context.Context, cid string) (int64, error) {
 	res, err := r.coll.DeleteMany(ctx, bson.M{"cid": cid})
 	if err != nil {
