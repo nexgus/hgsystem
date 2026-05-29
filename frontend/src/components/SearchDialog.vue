@@ -77,9 +77,9 @@ function onAccept() {
           <span class="date-sep">~</span>
           <ROCDateInput v-model="dateTo" mode="modify" />
         </div>
-        <div class="row">
-          <button @click="doSearch">(F) 搜尋</button>
-          <button @click="doHistory">(H) 記錄</button>
+        <div class="row search-buttons">
+          <button @click="doSearch">搜尋</button>
+          <button @click="doHistory">搜尋紀錄</button>
         </div>
       </div>
       <table class="results">
@@ -110,8 +110,8 @@ function onAccept() {
         </tbody>
       </table>
       <div class="dialog-actions">
-        <button :disabled="!selectedId" @click="onAccept">(Y) 確定</button>
-        <button @click="emit('close')">(N) 取消</button>
+        <button :disabled="!selectedId" @click="onAccept">確定</button>
+        <button @click="emit('close')">取消</button>
       </div>
     </div>
   </div>
@@ -135,6 +135,9 @@ function onAccept() {
 }
 .date-sep {
   margin: 0 6px;
+}
+.search-buttons > button {
+  min-width: 80px;
 }
 .results {
   flex: 1;

@@ -173,12 +173,12 @@ function onSave() {
     </div>
 
     <div class="controls">
-      <button :disabled="!canSearch" @click="emit('search')">(F) 搜尋</button>
-      <button :disabled="!canModify" @click="emit('modify')">(M) 修改</button>
-      <button :disabled="!canSave" @click="onSave">(S) 儲存</button>
-      <button :disabled="!canCancel" @click="emit('cancel')">(C) 取消</button>
-      <button :disabled="!canRemove" @click="emit('remove')">(R) 刪除</button>
-      <button :disabled="!canAppend" @click="emit('append')">(A) 新增</button>
+      <button :disabled="!canSearch" @click="emit('search')">搜尋</button>
+      <button :disabled="!canModify" @click="emit('modify')">修改</button>
+      <button :disabled="!canSave" @click="onSave">儲存</button>
+      <button :disabled="!canCancel" @click="emit('cancel')">取消</button>
+      <button :disabled="!canRemove" @click="emit('remove')">刪除</button>
+      <button :disabled="!canAppend" @click="emit('append')">新增</button>
     </div>
   </fieldset>
 </template>
