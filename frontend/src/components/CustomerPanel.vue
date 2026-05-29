@@ -47,7 +47,7 @@ function setPhone(idx: number, value: string) {
 const editing = computed(() => isEditable(props.mode));
 const klass = computed(() => editClass(props.mode));
 
-// 目前 form.title 若非空且不在 canonical 清單中, 將其視為「髒值」, 在下拉選單裡
+// 目前 form.title 若非空且不在 canonical 清單中, 將其視為"髒值", 在下拉選單裡
 // 額外顯示一個 "(目前) ..." 項目, 讓使用者保留或主動修正.
 const MANAGE_SENTINEL = "__MANAGE_TITLES__";
 const dirtyTitle = computed(() =>

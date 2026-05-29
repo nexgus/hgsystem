@@ -130,7 +130,7 @@ func main() {
 	}
 }
 
-// setupMacMenu 建立 macOS 原生選單列. 「系統」「資料」項目對應視窗內 MenuBar.vue
+// setupMacMenu 建立 macOS 原生選單列. "系統" 與 "資料" 兩項目對應視窗內 MenuBar.vue
 // 的功能, click 時透過 event 通知前端, 由前端共用同一組 handler.
 //
 // Edit / Window 為 Mac 標準角色 (剪下 / 複製 / 貼上 / Minimize / Zoom 等),

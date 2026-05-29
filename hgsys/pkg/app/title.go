@@ -7,7 +7,7 @@ import (
 	"hgsys/pkg/repository"
 )
 
-// TitleService 為「客戶稱謂清單」的 Wails binding.
+// TitleService 為"客戶稱謂清單"的 Wails binding.
 //
 // 清單存放於 `titles` collection. 空字串 ("無稱謂") 不視為清單成員, 由前端固定提供.
 type TitleService struct {

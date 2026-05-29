@@ -63,7 +63,7 @@ func (r *WorksheetRepository) Delete(ctx context.Context, id string) (int64, err
 // DistinctCustomerIDsByDateRange 回傳在指定期間內有 worksheet 之 cid 去重集合.
 // field 為 bson tag, 預期為 "order_time" 或 "deliver_time".
 // from / to 為 nil 代表該端不限. caller 應保證至少一端非 nil, 否則回傳的是
-// 所有「該欄位有值」的 cid (近似全表), 通常無意義.
+// 所有"該欄位有值"的 cid (近似全表), 通常無意義.
 func (r *WorksheetRepository) DistinctCustomerIDsByDateRange(ctx context.Context, field string, from, to *time.Time) ([]string, error) {
 	rangeCond := bson.M{}
 	if from != nil {

@@ -207,7 +207,7 @@ async function performSaveCustomer(draft: Customer) {
 
 async function saveCustomer(draft: Customer) {
   // modify 模式下, 若稱謂既非空字串也不在 canonical 清單中, 視為舊髒資料.
-  // 跳出確認框讓使用者選擇「加入清單」或「修正」.
+  // 跳出確認框讓使用者選擇"加入清單"或"修正".
   if (
     customerMode.value === "modify" &&
     draft.title !== "" &&

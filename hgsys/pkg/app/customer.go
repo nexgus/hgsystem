@@ -108,8 +108,8 @@ type SearchCriteria struct {
 // 空欄位會被忽略. 若指定了工作單期間條件, 會跨 worksheets 取出相應 cid 後再篩
 // 客戶.
 //
-// 若 birthdate 的年份為 YearNone (使用者只輸入了月日, 如 "0825"), 改以「不分年,
-// 只比月日」方式檢索, 並把結果按生日排序, 方便產生壽星名單.
+// 若 birthdate 的年份為 YearNone (使用者只輸入了月日, 如 "0825"), 改以"不分年,
+// 只比月日"方式檢索, 並把結果按生日排序, 方便產生壽星名單.
 func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 	filter := map[string]any{}
 	if c.Name != "" {
@@ -150,7 +150,7 @@ func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 		default:
 			return nil, fmt.Errorf("無效的日期欄位: %s", c.DateField)
 		}
-		// 將迄推到當日 23:59:59.999999999, 讓「3/15~3/15」涵蓋整天.
+		// 將迄推到當日 23:59:59.999999999, 讓"3/15~3/15"涵蓋整天.
 		var to *time.Time
 		if c.DateTo != nil {
 			t := c.DateTo.Add(24*time.Hour - time.Nanosecond)

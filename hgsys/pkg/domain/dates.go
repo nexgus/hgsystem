@@ -20,7 +20,7 @@ func ToROCYear(commonYear int) int {
 	return y
 }
 
-// ToCommonYear 將民國年轉為西元年. 第 0 年視為「年份未知」, 回傳 YearNone sentinel.
+// ToCommonYear 將民國年轉為西元年. 第 0 年視為"年份未知", 回傳 YearNone sentinel.
 func ToCommonYear(rocYear int) int {
 	if rocYear == 0 {
 		return YearNone

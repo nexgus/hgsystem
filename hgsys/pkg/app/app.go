@@ -64,7 +64,7 @@ func PrepareRepositories(ctx context.Context, client *mongo.Client) (*repository
 }
 
 // DefaultTitles 為首次啟動 titles collection 時寫入的預設稱謂. 空字串不在此列 —
-// 它由前端視為「無稱謂」的固定選項, 而非清單成員.
+// 它由前端視為"無稱謂"的固定選項, 而非清單成員.
 var DefaultTitles = []string{
 	"Miss",
 	"Mr.",

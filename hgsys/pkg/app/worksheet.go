@@ -44,7 +44,7 @@ func (s *WorksheetService) Delete(id string) (int64, error) {
 }
 
 // DeleteForCustomer 串聯刪除 cid 所屬之所有 worksheet.
-// 暴露此方法是為了讓「刪除客戶」UI 能自行驅動串聯刪除.
+// 暴露此方法是為了讓"刪除客戶"UI 能自行驅動串聯刪除.
 func (s *WorksheetService) DeleteForCustomer(cid string) (int64, error) {
 	return s.repo.DeleteForCustomer(context.Background(), cid)
 }

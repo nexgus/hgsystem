@@ -11,7 +11,7 @@ import (
 )
 
 // UpdateMarkerFilename 為自我更新重啟前寫入 repo 根目錄的標記檔, 讓下次啟動時
-// 能顯示「已由 X 更新為 Y」.
+// 能顯示"已由 X 更新為 Y".
 const UpdateMarkerFilename = "updated"
 
 // SystemService 為主選單所用之 version / update / about 動作的 binding.
@@ -42,7 +42,7 @@ func (s *SystemService) Platform() string {
 	return runtime.GOOS
 }
 
-// TestMode 回報是否帶有 -T 旗標 (即使「已是最新」也強制重啟).
+// TestMode 回報是否帶有 -T 旗標 (即使"已是最新"也強制重啟).
 func (s *SystemService) TestMode() bool {
 	return s.testMode
 }
@@ -53,7 +53,7 @@ func (s *SystemService) PendingUpdateMessage() (string, error) {
 	return services.ReadAndClearMarker(filepath.Join(s.repoRoot, UpdateMarkerFilename))
 }
 
-// UpdateResult 對應舊版「更新」選單呈現的四種結果: 已是最新版 (test mode → 重啟),
+// UpdateResult 對應舊版"更新"選單呈現的四種結果: 已是最新版 (test mode → 重啟),
 // 已 fast-forward (一律重啟), 錯誤, 或非預期的合併情況 (顯示細節).
 type UpdateResult struct {
 	State   string `json:"state"`   // "uptodate" | "fastforward" | "unexpected" | "error"
@@ -63,7 +63,7 @@ type UpdateResult struct {
 
 // Update 執行 git fetch + fast-forward + `go install`. 若 fast-forward 成功,
 // 會寫入標記檔並重啟 process (該情況下本函式不會回傳). test mode 下, 即使結果
-// 為「已是最新版」, 也會重啟.
+// 為"已是最新版", 也會重啟.
 func (s *SystemService) Update() (UpdateResult, error) {
 	res := UpdateResult{Version: version.String}
 	repoRoot := s.repoRoot
@@ -104,7 +104,7 @@ func (s *SystemService) Update() (UpdateResult, error) {
 func (s *SystemService) doRestart(repoRoot string) {
 	_ = services.WriteMarker(filepath.Join(repoRoot, UpdateMarkerFilename), version.String)
 	// Unix 下 syscall.Exec 會置換 process. Windows 下會回傳 error, caller 應將此
-	// 情況視為「請手動重啟」.
+	// 情況視為"請手動重啟".
 	_ = services.Restart(nil)
 }
 

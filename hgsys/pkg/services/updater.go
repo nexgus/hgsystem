@@ -42,7 +42,7 @@ func FindRepoRoot(startDir string) (string, error) {
 
 // PullAndInstall 從 `remoteName` fetch, 並對 `branch` 進行 fast-forward;
 // 若 `main` 不存在則退回 `master` (對齊舊版行為).
-// 僅能乾淨處理「已是最新」與「fast-forward」兩種情況; 其他情況一律回傳
+// 僅能乾淨處理"已是最新"與"fast-forward"兩種情況; 其他情況一律回傳
 // PullUnexpected 並附上 detail 字串.
 //
 // fast-forward 完成後, 會以 `go install` 重新編譯 Go 執行檔, 讓下次 exec 載入
@@ -157,7 +157,7 @@ func goInstall(repoRoot string) error {
 	return cmd.Run()
 }
 
-// MarkerFile 寫入目前的版本字串, 讓下次啟動時能顯示「已由 X 更新為 Y」.
+// MarkerFile 寫入目前的版本字串, 讓下次啟動時能顯示"已由 X 更新為 Y".
 // 搭配 Restart 一起使用.
 func WriteMarker(path, version string) error {
 	return os.WriteFile(path, []byte(version), 0o644)

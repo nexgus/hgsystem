@@ -1,6 +1,6 @@
 # hgsystem
 
-hgsystem (豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統) 為一支 Go + Wails v3 桌面應用, 前端以 Vue 3 + TypeScript 撰寫, 經系統 webview 渲染. 提供眼鏡店之客戶資料維護與配鏡工單管理, 資料儲存於本地 MongoDB 之 `hgsystem` 資料庫, 涵蓋客戶 (`customers`), 工單 (`worksheets`) 與本次啟動之搜尋歷史 (`search`) 三個 collection.
+hgsystem (豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統) 為一支 Go + Wails v3 桌面應用, 前端以 Vue 3 + TypeScript 撰寫, 經系統 webview 渲染. 提供眼鏡店之客戶資料維護與配鏡工單管理, 資料儲存於本地 MongoDB 之 `hgsystem` 資料庫, 涵蓋客戶 (`customers`), 工單 (`worksheets`), 稱謂清單 (`titles`) 與本次啟動之搜尋歷史 (`search`) 四個 collection.
 
 本目錄之 `build.sh` 同時交叉編譯 darwin/arm64 與 windows/amd64, 並產出 Windows MSI 安裝程式.
 
@@ -32,11 +32,11 @@ bash build.sh
 1. 偵測 wixl (msitools), 缺少時透過 Homebrew 安裝.
 1. `go mod download` 同步 Go 依賴.
 1. 產出前端:
-   - 由 `hgsys/` 內呼叫 `wails3 generate bindings -ts ./cmd/hgsystem`, 由 Go service (`pkg/app` 下之 `CustomerService`, `WorksheetService`, `SearchService`, `BackupService`, `SystemService`) 反推產生 `frontend/bindings/` 之 TypeScript 綁定. 此命令須於含 `go.mod` 之目錄執行, 並指定 `./cmd/hgsystem` 為 pattern, 使 static analyser 找得到 `application.NewService(...)` 之呼叫.
+   - 由 `hgsys/` 內呼叫 `wails3 generate bindings -ts ./cmd/hgsystem`, 由 Go service (`pkg/app` 下之 `CustomerService`, `WorksheetService`, `SearchService`, `TitleService`, `BackupService`, `SystemService`) 反推產生 `frontend/bindings/` 之 TypeScript 綁定. 此命令須於含 `go.mod` 之目錄執行, 並指定 `./cmd/hgsystem` 為 pattern, 使 static analyser 找得到 `application.NewService(...)` 之呼叫.
    - 於 `frontend/` 執行 `npm run build`, 經 vue-tsc 型別檢查後由 Vite 輸出 `frontend/dist/`.
    - 將 `frontend/dist/` 複製為 `hgsys/cmd/hgsystem/dist/`, 供 `//go:embed all:dist` 內嵌進執行檔. Go 之 embed 不允許 `..` 跨層, 故必須以複製而非符號連結方式置入.
 1. 依序編譯 darwin/arm64 之 hgsystem (`CGO_ENABLED=1`, 以 `-extldflags '-mmacosx-version-min=26.0'` 對齊 Wails alpha.95 內含之 Objective-C 預編譯物件) 與 windows/amd64 之 hgsystem (`CGO_ENABLED=1`, `CC=x86_64-w64-mingw32-gcc`, 以 `-H windowsgui` 指定 GUI subsystem, 避免雙擊時跳出多餘的 console 視窗).
-1. 將 `msi/hgsystem.wxs.in` 之 `@VERSION@` 替換為當前版本後寫入 `msi/hgsystem.wxs` (不入版控), 再交由 wixl 編譯為 Windows MSI 安裝程式. 末對 MSI 進行兩項後處理: (a) Environment table 補入「解除安裝時自系統 PATH 移除安裝目錄」之語意 (詳見第 6.2 節); (b) `_SummaryInformation` 之 codepage 由 1252 改為 65001 (UTF-8), 使 Windows 端能正確顯示中文 description (詳見第 6.3 節).
+1. 將 `msi/hgsystem.wxs.in` 之 `@VERSION@` 替換為當前版本後寫入 `msi/hgsystem.wxs` (不入版控), 再交由 wixl 編譯為 Windows MSI 安裝程式. 末對 MSI 進行兩項後處理: (a) Environment table 補入"解除安裝時自系統 PATH 移除安裝目錄"之語意 (詳見第 6.2 節); (b) `_SummaryInformation` 之 codepage 由 1252 改為 65001 (UTF-8), 使 Windows 端能正確顯示中文 description (詳見第 6.3 節).
 1. 建立 `bin/hgsystem`, `bin/hgsystem.exe` 與 `bin/hgsystem.msi` 三個 symlink, 分別指向當前平台之執行檔與 MSI.
 
 產出檔置於 `bin/`, 檔名形如:
@@ -65,7 +65,7 @@ bin/hgsystem-<版本>.msi
 - Windows: `%LOCALAPPDATA%\hgsystem\logs\YYMMDD_NNNN.log`
 - 其餘平台: `$XDG_STATE_HOME/hgsystem/logs/` (或 `~/.local/state/hgsystem/logs/`).
 
-主畫面之選單分為「系統」(更新 / 有關 / 離開) 與「資料」(備份 / 還原) 兩列. 備份與還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框. 「更新」呼叫遠端 `git pull`, 若可 fast-forward 則執行 `go install ./cmd/hgsystem` 後以 `syscall.Exec` 原地重啟程式; 故部署機器若需自我更新, 必須具備 Go 工具鏈.
+主畫面之選單分為"系統"(更新 / 有關 / 離開) 與"資料"(備份 / 還原) 兩列. 備份與還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框. "更新"以 go-git 程式庫自遠端 fetch 後嘗試 fast-forward, 成功則執行 `go install ./cmd/hgsystem` 後以 `syscall.Exec` 原地重啟程式; 故部署機器若需自我更新, 必須具備 Go 工具鏈 (但不需 `git` CLI, fetch 由 go-git 於行程內完成).
 
 ## 4. 清除產物
 
@@ -83,10 +83,10 @@ bash clear.sh
 
 domain 行為涉及與 MongoDB 中既有資料及 `mongodump` 備份檔之相容性, 變更時須留意以下不變式:
 
-- 資料庫名 `hgsystem` 與 collection 名 (`customers`, `worksheets`, `search`) 不可更動.
+- 資料庫名 `hgsystem` 與 collection 名 (`customers`, `worksheets`, `search`, `titles`) 不可更動.
 - 文件 `_id` 為以字串型態儲存的 `bson.ObjectId` (非原生 ObjectId 型別).
 - 工單之客戶外鍵欄位名為 `cid`.
-- ROC 民國紀年中「民國 0 年」不存在, 故 [`hgsys/pkg/domain/dates.go`](hgsys/pkg/domain/dates.go) 與 [`frontend/src/lib/rocDate.ts`](frontend/src/lib/rocDate.ts) 皆對 0 年作負偏移處理; 「年份未知」以哨兵值 `YEAR_NONE = 9996` 表示. 改動其一須同步另一, 否則既有儲存之日期會誤捨入.
+- ROC 民國紀年中"民國 0 年"不存在, 故 [`hgsys/pkg/domain/dates.go`](hgsys/pkg/domain/dates.go) 與 [`frontend/src/lib/rocDate.ts`](frontend/src/lib/rocDate.ts) 皆對 0 年作負偏移處理; "年份未知"以哨兵值 `YEAR_NONE = 9996` 表示. 改動其一須同步另一, 否則既有儲存之日期會誤捨入.
 
 ## 6. Windows MSI 安裝程式
 
@@ -100,9 +100,9 @@ domain 行為涉及與 MongoDB 中既有資料及 `mongodump` 備份檔之相容
 
 升級語意採 MajorUpgrade:
 
-- **新版安裝於舊版之上**: 自動先移除舊版再安裝新版, 對使用者而言為「就地升級」.
+- **新版安裝於舊版之上**: 自動先移除舊版再安裝新版, 對使用者而言為"就地升級".
 - **同版本重裝**: 允許直接覆蓋 (`AllowSameVersionUpgrades="yes"`), 便於開發期反覆編譯.
-- **降級**: 拒絕, 顯示「已安裝較新版本」錯誤訊息.
+- **降級**: 拒絕, 顯示"已安裝較新版本"錯誤訊息.
 
 `UpgradeCode` 為固定 GUID (`7C12F6AC-EDAB-4539-BFB3-645EDD61BA4C`), 一旦變更等同新產品, 將與舊版失去升級關係.
 
@@ -142,7 +142,7 @@ ProductCode 可於原始 .msi 上以 `msiinfo export <當初的 .msi> Property` 
 
 ### 6.2 wixl 對 Environment 之異常行為
 
-wixl (msitools 0.106) 對 `<Environment>` 元素之 `Permanent="no"` 並未發出對應之 MSI Name `-` 前綴, 導致解除安裝階段不會自動從系統 PATH 移除 `INSTALLDIR`, 多次升級會累積重複條目. `build.sh` 於 wixl 編譯後以 `msiinfo export Environment | sed | msibuild -i` 將 `=*PATH` 後處理為 `=-*PATH`, 補入「解除安裝時移除」之語意.
+wixl (msitools 0.106) 對 `<Environment>` 元素之 `Permanent="no"` 並未發出對應之 MSI Name `-` 前綴, 導致解除安裝階段不會自動從系統 PATH 移除 `INSTALLDIR`, 多次升級會累積重複條目. `build.sh` 於 wixl 編譯後以 `msiinfo export Environment | sed | msibuild -i` 將 `=*PATH` 後處理為 `=-*PATH`, 補入"解除安裝時移除"之語意.
 
 ### 6.3 wixl 對 SummaryCodepage 之忽略
 

@@ -14,7 +14,7 @@ import (
 // 在目前 session 中檢視過的客戶.
 //
 // 此 collection 於每次啟動時清空; 被選取的客戶會被追加進去 (依 _id 去重),
-// 讓使用者可透過搜尋對話框的「歷史」按鈕重新開啟.
+// 讓使用者可透過搜尋對話框的"歷史"按鈕重新開啟.
 type SearchHistoryRepository struct {
 	coll *mongo.Collection
 }
