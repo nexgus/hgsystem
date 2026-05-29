@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"hgsys/pkg/domain"
@@ -106,6 +107,9 @@ type SearchCriteria struct {
 // Search 以子字串 regex 比對 name / addr / phone, 並以精確比對檢索 birthdate.
 // 空欄位會被忽略. 若指定了工作單期間條件, 會跨 worksheets 取出相應 cid 後再篩
 // 客戶.
+//
+// 若 birthdate 的年份為 YearNone (使用者只輸入了月日, 如 "0825"), 改以「不分年,
+// 只比月日」方式檢索, 並把結果按生日排序, 方便產生壽星名單.
 func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 	filter := map[string]any{}
 	if c.Name != "" {
@@ -117,8 +121,23 @@ func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 	if c.Phone != "" {
 		filter["phones"] = map[string]any{"$regex": fmt.Sprintf(".*%s.*", c.Phone)}
 	}
+	monthDayOnly := false
 	if c.Birthdate != nil {
-		filter["birthdate"] = *c.Birthdate
+		if c.Birthdate.Year() == domain.YearNone {
+			monthDayOnly = true
+			filter["$expr"] = map[string]any{
+				"$and": []any{
+					map[string]any{"$eq": []any{
+						map[string]any{"$month": "$birthdate"}, int(c.Birthdate.Month()),
+					}},
+					map[string]any{"$eq": []any{
+						map[string]any{"$dayOfMonth": "$birthdate"}, c.Birthdate.Day(),
+					}},
+				},
+			}
+		} else {
+			filter["birthdate"] = *c.Birthdate
+		}
 	}
 
 	if c.DateField != "" && (c.DateFrom != nil || c.DateTo != nil) {
@@ -147,7 +166,23 @@ func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 		filter["_id"] = map[string]any{"$in": ids}
 	}
 
-	return s.repo.Find(context.Background(), filter)
+	res, err := s.repo.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	if monthDayOnly {
+		sort.SliceStable(res, func(i, j int) bool {
+			bi, bj := res[i].Birthdate, res[j].Birthdate
+			if bi == nil {
+				return false
+			}
+			if bj == nil {
+				return true
+			}
+			return bi.Before(*bj)
+		})
+	}
+	return res, nil
 }
 
 // History 回傳目前 session 的搜尋歷史.
