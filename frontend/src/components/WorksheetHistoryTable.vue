@@ -44,40 +44,47 @@ const visibleRows = computed(() => props.rows);
 </script>
 
 <template>
-  <div :class="['history-table', { frozen }]">
-    <table>
-      <thead>
-        <tr>
-          <th v-for="c in columns" :key="c.key">{{ c.label }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="w in visibleRows"
-          :key="w.id"
-          :class="{ selected: w.id === currentId }"
-          @click="frozen ? null : emit('select', w.id)"
-        >
-          <td v-for="c in columns" :key="c.key">{{ cell(w, c.key) }}</td>
-        </tr>
-        <tr v-if="visibleRows.length === 0">
-          <td :colspan="columns.length" class="empty">(無工單)</td>
-        </tr>
-      </tbody>
-    </table>
+  <div :class="['history-cell', { frozen }]">
+    <div class="history-table">
+      <table>
+        <thead>
+          <tr>
+            <th v-for="c in columns" :key="c.key">{{ c.label }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="w in visibleRows"
+            :key="w.id"
+            :class="{ selected: w.id === currentId }"
+            @click="frozen ? null : emit('select', w.id)"
+          >
+            <td v-for="c in columns" :key="c.key">{{ cell(w, c.key) }}</td>
+          </tr>
+          <tr v-if="visibleRows.length === 0">
+            <td :colspan="columns.length" class="empty">(無工單)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.history-cell {
+  position: relative;
+  min-height: 0;
+}
+.history-cell.frozen {
+  opacity: 0.6;
+  pointer-events: none;
+}
 .history-table {
+  position: absolute;
+  inset: 0;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   overflow: auto;
-  max-height: 240px;
-}
-.history-table.frozen {
-  opacity: 0.6;
-  pointer-events: none;
 }
 td.empty {
   text-align: center;

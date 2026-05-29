@@ -18,3 +18,7 @@ __pycache__/
 
 # Generated MSI manifest (built from msi/hgsystem.wxs.in by build.sh)
 /msi/hgsystem.wxs
+
+# Private data
+/data/
+/db_backup/
