@@ -14,6 +14,9 @@ const phone = ref("");
 const birthdate = ref<string | null>(null);
 const name = ref("");
 const addr = ref("");
+const dateField = ref<"order" | "deliver">("order");
+const dateFrom = ref<string | null>(null);
+const dateTo = ref<string | null>(null);
 
 const results = ref<Customer[]>([]);
 const selectedId = ref<string>("");
@@ -24,6 +27,9 @@ async function doSearch() {
     addr: addr.value.trim(),
     phone: phone.value.trim(),
     birthdate: birthdate.value,
+    dateField: dateField.value,
+    dateFrom: dateFrom.value,
+    dateTo: dateTo.value,
   });
   results.value = list ?? [];
   selectedId.value = results.value[0]?.id ?? "";
@@ -61,6 +67,15 @@ function onAccept() {
         <div class="row">
           <label>地址</label>
           <input v-model="addr" class="edit-red" style="flex: 1" />
+        </div>
+        <div class="row">
+          <select v-model="dateField" class="date-field-select">
+            <option value="order">收件期間</option>
+            <option value="deliver">交件期間</option>
+          </select>
+          <ROCDateInput v-model="dateFrom" mode="modify" />
+          <span class="date-sep">~</span>
+          <ROCDateInput v-model="dateTo" mode="modify" />
         </div>
         <div class="row">
           <button @click="doSearch">(F) 搜尋</button>
@@ -105,15 +120,21 @@ function onAccept() {
 <style scoped>
 .search-dialog {
   width: 720px;
-  height: 520px;
+  height: 540px;
 }
 .filters {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.filters label {
-  width: 60px;
+/* 左欄: 文字 label 與日期下拉皆對齊到同一寬度, 讓視覺上「標題欄」連成一直線. */
+.filters > .row > label:first-child,
+.filters > .row > .date-field-select {
+  width: 100px;
+  flex: 0 0 auto;
+}
+.date-sep {
+  margin: 0 6px;
 }
 .results {
   flex: 1;

@@ -74,24 +74,38 @@ func (s *CustomerService) Delete(id string) (int64, error) {
 
 // SearchService 獨立成型, 讓搜尋對話框擁有自己的 binding.
 type SearchService struct {
-	repo    *repository.CustomerRepository
-	history *repository.SearchHistoryRepository
+	repo       *repository.CustomerRepository
+	worksheets *repository.WorksheetRepository
+	history    *repository.SearchHistoryRepository
 }
 
 func NewSearchService(r *repository.Repositories) *SearchService {
-	return &SearchService{repo: r.Customers, history: r.SearchHistory}
+	return &SearchService{
+		repo:       r.Customers,
+		worksheets: r.Worksheets,
+		history:    r.SearchHistory,
+	}
 }
 
-// SearchCriteria 對應舊版搜尋對話框的輸入欄位.
+// SearchCriteria 對應搜尋對話框的輸入欄位.
+//
+// DateField 為 "order" / "deliver" / "" — 指定要套用 worksheet 的接單日期或交貨
+// 日期條件. 僅當 DateField 非空且 DateFrom / DateTo 至少一者非 nil 時, 期間條件
+// 才會啟用; 啟用時會先查 worksheets 取得符合的 cid 集合, 再 AND 進 customer
+// filter.
 type SearchCriteria struct {
 	Name      string     `json:"name"`
 	Addr      string     `json:"addr"`
 	Phone     string     `json:"phone"`
 	Birthdate *time.Time `json:"birthdate"`
+	DateField string     `json:"dateField"`
+	DateFrom  *time.Time `json:"dateFrom"`
+	DateTo    *time.Time `json:"dateTo"`
 }
 
 // Search 以子字串 regex 比對 name / addr / phone, 並以精確比對檢索 birthdate.
-// 空欄位會被忽略.
+// 空欄位會被忽略. 若指定了工作單期間條件, 會跨 worksheets 取出相應 cid 後再篩
+// 客戶.
 func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 	filter := map[string]any{}
 	if c.Name != "" {
@@ -106,6 +120,33 @@ func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 	if c.Birthdate != nil {
 		filter["birthdate"] = *c.Birthdate
 	}
+
+	if c.DateField != "" && (c.DateFrom != nil || c.DateTo != nil) {
+		var bsonField string
+		switch c.DateField {
+		case "order":
+			bsonField = "order_time"
+		case "deliver":
+			bsonField = "deliver_time"
+		default:
+			return nil, fmt.Errorf("無效的日期欄位: %s", c.DateField)
+		}
+		// 將迄推到當日 23:59:59.999999999, 讓「3/15~3/15」涵蓋整天.
+		var to *time.Time
+		if c.DateTo != nil {
+			t := c.DateTo.Add(24*time.Hour - time.Nanosecond)
+			to = &t
+		}
+		ids, err := s.worksheets.DistinctCustomerIDsByDateRange(context.Background(), bsonField, c.DateFrom, to)
+		if err != nil {
+			return nil, err
+		}
+		if len(ids) == 0 {
+			return []domain.Customer{}, nil
+		}
+		filter["_id"] = map[string]any{"$in": ids}
+	}
+
 	return s.repo.Find(context.Background(), filter)
 }
 
