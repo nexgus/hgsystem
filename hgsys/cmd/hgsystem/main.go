@@ -90,7 +90,7 @@ func main() {
 	searchSvc := app.NewSearchService(repos)
 	titleSvc := app.NewTitleService(repos)
 	// Backup / System service 需要 *App 來發送事件 / 結束程式; 在 New 之後再注入.
-	backupSvc := app.NewBackupService(nil)
+	backupSvc := app.NewBackupService(nil, client)
 	systemSvc := app.NewSystemService(nil, repoRoot, *test)
 
 	wailsApp := application.New(application.Options{

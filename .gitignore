@@ -25,3 +25,4 @@ __pycache__/
 # Private data
 /data/
 /db_backup/
+temp/

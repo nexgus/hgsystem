@@ -147,4 +147,6 @@ db.customers.findOne()
 db.worksheets.countDocuments()
 ```
 
-備份與還原功能在應用程式內亦有對應 (主畫面「資料」選單的備份 / 還原), 同樣以 `mongodump` / `mongorestore` 子程序執行, 因此這兩個工具需位於 PATH 上.
+備份與還原功能在應用程式內亦有對應 (主畫面「資料」選單的備份 / 還原), 同樣以 `mongodump` / `mongorestore` 子程序執行; 主機 PATH 上無這兩個工具時, 會自動改用 MongoDB 容器內的工具.
+
+應用程式備份時, 會在使用者選取的備份目錄下另寫一個 `backup-info.json`, 記錄備份時間, MongoDB server 版本, 使用的備份工具與各 collection 筆數. 此檔與 dump 產生的 `hgsystem/` 夾同層 (不在 `mongorestore --dir` 指向的目錄內), 因此不影響還原.

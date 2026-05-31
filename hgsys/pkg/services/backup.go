@@ -4,13 +4,17 @@ package services
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"hgsys/pkg/repository"
 )
@@ -57,18 +61,98 @@ const (
 // 的預設連線 port 一致 (備份目前不帶 -H / -p, 固定走預設值).
 const MongoPort = 27017
 
+// backupMetaFile 為備份資訊檔名. 寫在使用者選的備份目錄下, 與 dump 產生的
+// hgsystem/ 夾同層 — 不在 mongorestore --dir 指向的目錄之內, 因此不影響還原.
+const backupMetaFile = "backup-info.json"
+
+// MetaInfo 由 app 層提供 services 層無從得知的資訊 (MongoDB server 版本與
+// hgsystem 版本), 一併寫入備份 metadata. 取不到時可為空字串.
+type MetaInfo struct {
+	MongoDBVersion string
+	AppVersion     string
+}
+
+// BackupMeta 為寫入 <savepath>/backup-info.json 的內容, 記錄此次備份的時間,
+// 來源工具與各 collection 筆數, 供日後辨識與驗證備份用.
+type BackupMeta struct {
+	Database       string         `json:"database"`
+	BackupTime     string         `json:"backup_time"`     // RFC3339, 本地時區
+	MongoDBVersion string         `json:"mongodb_version"` // 取自 server buildInfo; 未知時為空字串
+	BackupTool     string         `json:"backup_tool"`     // "mongodump (host)" 或 "mongodump (container <name>)"
+	AppVersion     string         `json:"app_version"`     // hgsystem 版本
+	Collections    map[string]int `json:"collections"`     // collection 名稱 -> 文件數, 取自 mongodump 輸出
+}
+
+// dumpCountRe 比對 mongodump 的 "done dumping <db>.<collection> (N documents)"
+// 輸出行 (tab 已由 forwardLines 換成空白), 取出 collection 名稱與筆數.
+var dumpCountRe = regexp.MustCompile(`done dumping ` + regexp.QuoteMeta(repository.DatabaseName) + `\.(\S+) \((\d+) document`)
+
 // Dump 將 hgsystem 資料庫匯出至 host 的 <savepath>. 優先使用 host 上的 mongodump;
 // 若 host 未安裝, 則退回在 MongoDB 容器內執行 mongodump, 再以 `docker cp` 把結果
 // 複製回 host. 每一行 stderr 會轉發給 onLine; 直到完成才回傳 (blocking).
-func Dump(ctx context.Context, savepath string, onLine func(string)) error {
+func Dump(ctx context.Context, savepath string, info MetaInfo, onLine func(string)) error {
+	// 邊備份邊解析 mongodump 輸出的各 collection 筆數, 同時照常逐行轉發前端.
+	counts := map[string]int{}
+	record := func(line string) {
+		scanDumpCount(line, counts)
+		emit(onLine, line)
+	}
+
+	var tool string
 	if _, err := exec.LookPath("mongodump"); err == nil {
-		return runStreamed(ctx, "mongodump", []string{"-d", repository.DatabaseName, "-o", savepath}, onLine)
+		if err := runStreamed(ctx, "mongodump", []string{"-d", repository.DatabaseName, "-o", savepath}, record); err != nil {
+			return err
+		}
+		tool = "mongodump (host)"
+	} else {
+		container := MongoContainer(MongoPort)
+		if container == "" {
+			return fmt.Errorf("找不到 mongodump, 也找不到發佈 %d port 的 MongoDB 容器 (請安裝 MongoDB Database Tools, 或確認 docker 容器已啟動)", MongoPort)
+		}
+		if err := dumpViaDocker(ctx, container, savepath, record); err != nil {
+			return err
+		}
+		tool = fmt.Sprintf("mongodump (container %s)", container)
 	}
-	container := MongoContainer(MongoPort)
-	if container == "" {
-		return fmt.Errorf("找不到 mongodump, 也找不到發佈 %d port 的 MongoDB 容器 (請安裝 MongoDB Database Tools, 或確認 docker 容器已啟動)", MongoPort)
+
+	// 備份本身已完成; metadata 寫檔失敗不視為備份失敗, 僅在對話框提示.
+	if err := writeBackupMeta(savepath, info, tool, counts); err != nil {
+		emit(onLine, fmt.Sprintf("警告: 寫入備份資訊檔失敗: %v", err))
 	}
-	return dumpViaDocker(ctx, container, savepath, onLine)
+	return nil
+}
+
+// scanDumpCount 解析單行 mongodump 輸出, 若為某 collection 的完成行則記下筆數.
+func scanDumpCount(line string, counts map[string]int) {
+	m := dumpCountRe.FindStringSubmatch(line)
+	if m == nil {
+		return
+	}
+	n, err := strconv.Atoi(m[2])
+	if err != nil {
+		return
+	}
+	counts[m[1]] = n
+}
+
+// writeBackupMeta 將此次備份的 metadata 以縮排 JSON 寫入 <savepath>/backup-info.json.
+// savepath 於兩條 dump 路徑執行至此時均已存在 (host: mongodump -o 建立; docker:
+// dumpViaDocker 內以 MkdirAll 建立).
+func writeBackupMeta(savepath string, info MetaInfo, tool string, counts map[string]int) error {
+	meta := BackupMeta{
+		Database:       repository.DatabaseName,
+		BackupTime:     time.Now().Format(time.RFC3339),
+		MongoDBVersion: info.MongoDBVersion,
+		BackupTool:     tool,
+		AppVersion:     info.AppVersion,
+		Collections:    counts,
+	}
+	data, err := json.MarshalIndent(meta, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return os.WriteFile(filepath.Join(savepath, backupMetaFile), data, 0o644)
 }
 
 // Restore 從 host 的 <savepath> 還原 hgsystem 資料庫. 工具挑選邏輯與 Dump 相同:
