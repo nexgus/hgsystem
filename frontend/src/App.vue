@@ -383,8 +383,10 @@ async function onMenuBackup() {
     CanChooseDirectories: true,
     CanChooseFiles: false,
     CanCreateDirectories: true,
+    Directory: await BackupService.LastBackupDir(),
   });
   if (!dir || Array.isArray(dir)) return;
+  await BackupService.SetLastBackupDir(dir);
   backupState.value = { savepath: dir, mode: "backup" };
 }
 
@@ -393,8 +395,10 @@ async function onMenuRestore() {
     Title: "選擇備份目錄",
     CanChooseDirectories: true,
     CanChooseFiles: false,
+    Directory: await BackupService.LastRestoreDir(),
   });
   if (!dir || Array.isArray(dir)) return;
+  await BackupService.SetLastRestoreDir(dir);
   const resolved = await BackupService.ResolveRestoreDir(dir);
   const missing = await BackupService.MissingRestoreFiles(resolved);
   if (missing && missing.length > 0) {

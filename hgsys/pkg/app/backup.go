@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -49,6 +50,33 @@ func (s *BackupService) Restore(savepath string) error {
 	err := services.Restore(context.Background(), savepath, s.emitLine)
 	s.emitDone(err)
 	return err
+}
+
+// LastBackupDir 回傳上次選取的備份目錄, 供前端對話框作為起始目錄; 從未選過時
+// 回傳 "".
+func (s *BackupService) LastBackupDir() string {
+	return services.LoadSettings().BackupDir
+}
+
+// LastRestoreDir 回傳上次選取的還原目錄, 供前端對話框作為起始目錄; 從未選過時
+// 回傳 "".
+func (s *BackupService) LastRestoreDir() string {
+	return services.LoadSettings().RestoreDir
+}
+
+// SetLastBackupDir 記住備份對話框選取的目錄. 由前端在使用者選完目錄當下呼叫
+// (不論之後備份是否成功).
+func (s *BackupService) SetLastBackupDir(dir string) {
+	if err := services.SaveBackupDir(dir); err != nil {
+		slog.Warn("記住備份目錄失敗", "err", err)
+	}
+}
+
+// SetLastRestoreDir 記住還原對話框選取的目錄. 由前端在使用者選完目錄當下呼叫.
+func (s *BackupService) SetLastRestoreDir(dir string) {
+	if err := services.SaveRestoreDir(dir); err != nil {
+		slog.Warn("記住還原目錄失敗", "err", err)
+	}
 }
 
 func (s *BackupService) emitLine(line string) {
