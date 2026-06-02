@@ -1,1 +1,0 @@
-cmd /k "d:\ & & cd /d D:\hgsystem\works & python main.pyw"
