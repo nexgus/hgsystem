@@ -55,7 +55,6 @@ bin/hgsystem-<版本>.msi
 ```bash
 ./bin/hgsystem                       # 預設連 MongoDB localhost:27017
 ./bin/hgsystem -H <host> -p <port>   # 指定 MongoDB 位址
-./bin/hgsystem -T                    # 測試模式, 更新動作即使無新版亦會重啟
 ./bin/hgsystem -d                    # console 輸出層級調至 DEBUG
 ./bin/hgsystem --version
 ```
@@ -66,7 +65,7 @@ bin/hgsystem-<版本>.msi
 - Windows: `%LOCALAPPDATA%\hgsystem\logs\YYMMDD_NNNN.log`
 - 其餘平台: `$XDG_STATE_HOME/hgsystem/logs/` (或 `~/.local/state/hgsystem/logs/`).
 
-主畫面之選單分為"系統"(更新 / 有關 / 離開) 與"資料"(備份 / 還原) 兩列. 備份與還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框. "更新"以 go-git 程式庫自遠端 fetch 後嘗試 fast-forward, 成功則執行 `go install ./cmd/hgsystem` 後以 `syscall.Exec` 原地重啟程式; 故部署機器若需自我更新, 必須具備 Go 工具鏈 (但不需 `git` CLI, fetch 由 go-git 於行程內完成).
+主畫面之選單分為"系統"(有關 / 離開) 與"資料"(備份 / 還原) 兩列. 備份與還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框.
 
 ## 4. 清除產物
 
@@ -74,7 +73,7 @@ bin/hgsystem-<版本>.msi
 bash clear.sh
 ```
 
-`clear.sh` 刪除 `build.sh` 產出之所有 binary, 中間產物與快取, 包含 `bin/`, `hgsys/cmd/hgsystem/dist/`, `frontend/dist/`, `frontend/bindings/`, `frontend/node_modules/`, `frontend/tsconfig.tsbuildinfo`, `msi/hgsystem.wxs`, 與自我更新留下之 `updated` marker. 不動 git-tracked 之原始碼; 可重複執行.
+`clear.sh` 刪除 `build.sh` 產出之所有 binary, 中間產物與快取, 包含 `bin/`, `hgsys/cmd/hgsystem/dist/`, `frontend/dist/`, `frontend/bindings/`, `frontend/node_modules/`, `frontend/tsconfig.tsbuildinfo`, 與 `msi/hgsystem.wxs`. 不動 git-tracked 之原始碼; 可重複執行.
 
 ## 5. 開發者工作流
 

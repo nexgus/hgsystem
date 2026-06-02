@@ -40,7 +40,4 @@ covers only what isn't obvious from the code.
 
 - Edit-mode interlock lives entirely in `frontend/src/App.vue`; Go services are
   stateless beyond the Mongo connection.
-- Self-update (`SystemService.Update` + `更新` menu): go-git fetch + fast-forward,
-  then `go install ./cmd/hgsystem` + `syscall.Exec` — so target machines need a
-  Go toolchain (the `git` CLI is not required).
 - MSI quirks and the post-build `msibuild` workarounds: [README.md](README.md) §6.2–6.3.

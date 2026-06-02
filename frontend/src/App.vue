@@ -139,7 +139,6 @@ onMounted(async () => {
   isMac.value = (await SystemService.Platform()) === "darwin";
 
   // 訂閱 Go 端原生 menu 發出的事件 (Mac 才會觸發, 但訂閱本身在所有平台都無害).
-  Events.On("menu:update", () => { onMenuUpdate(); });
   Events.On("menu:about", () => { onMenuAbout(); });
   Events.On("menu:exit", () => { onMenuExit(); });
   Events.On("menu:backup", () => { onMenuBackup(); });
@@ -147,13 +146,6 @@ onMounted(async () => {
 
   await refreshTotal();
   await refreshTitles();
-  const pending = await SystemService.PendingUpdateMessage();
-  if (pending) {
-    info.value = {
-      title: "更新結果",
-      message: `已由 ${pending} 更新為 ${appVersion.value}`,
-    };
-  }
 });
 
 // ---- customer 動作 ---------------------------------------------------------
@@ -343,29 +335,6 @@ function selectWorksheet(id: string) {
 }
 
 // ---- 選單動作 --------------------------------------------------------------
-async function onMenuUpdate() {
-  const result = await SystemService.Update();
-  if (result.state === "uptodate") {
-    info.value = {
-      title: "更新結果",
-      message: `已為最新版本 (${appVersion.value})`,
-    };
-  } else if (result.state === "unexpected") {
-    info.value = {
-      title: "更新結果",
-      message: `發生錯誤\n${result.detail}`,
-      variant: "error",
-    };
-  } else if (result.state === "error") {
-    info.value = {
-      title: "更新結果",
-      message: `更新失敗: ${result.detail}`,
-      variant: "error",
-    };
-  }
-  // "fastforward" 分支會經由 os.Exec 重啟, 因此這段程式不會執行到.
-}
-
 function onMenuAbout() {
   info.value = {
     title: "有關",
@@ -432,7 +401,6 @@ const historyFrozen = computed(() =>
   <div class="app-shell">
     <MenuBar
       v-if="!isMac"
-      @update="onMenuUpdate"
       @about="onMenuAbout"
       @exit="onMenuExit"
       @backup="onMenuBackup"

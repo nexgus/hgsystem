@@ -10,7 +10,6 @@
 #   * frontend/node_modules/        — npm install 的依賴
 #   * frontend/tsconfig.tsbuildinfo — vue-tsc 增量編譯快取
 #   * msi/hgsystem.wxs              — sed 由 .wxs.in 生成的 MSI manifest
-#   * updated                       — self-update 重啟前丟下的版本 marker
 
 set -eo pipefail
 
@@ -25,7 +24,6 @@ TARGETS=(
     frontend/node_modules
     frontend/tsconfig.tsbuildinfo
     msi/hgsystem.wxs
-    updated
 )
 
 for path in "${TARGETS[@]}"; do

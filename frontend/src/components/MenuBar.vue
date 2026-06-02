@@ -2,7 +2,6 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 
 defineEmits<{
-  (e: "update"): void;
   (e: "about"): void;
   (e: "exit"): void;
   (e: "backup"): void;
@@ -30,7 +29,6 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick));
     <div class="menu">
       <button class="menu-button" @click="toggle('system')">系統</button>
       <div v-if="open === 'system'" class="menu-popup">
-        <button @click="() => { $emit('update'); close(); }">更新</button>
         <button @click="() => { $emit('about'); close(); }">有關</button>
         <button @click="() => { $emit('exit'); close(); }">離開</button>
       </div>

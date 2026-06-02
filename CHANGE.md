@@ -25,7 +25,7 @@
 - 移除所有 Alt 加字母的按鍵快捷鍵.
 - 輸入框改為非 3D 之扁平樣式, 以免於深色背景下不易辨識.
 - 對齊左上角 (客戶資料) 與右上角 (歷史工單) 兩區塊的高度.
-- 自我更新方式由 `git pull` 加 `pip install`, 改為 `git fetch` 加 fast-forward 加 `go install` (目標機器須具備 Go 工具鏈).
+- 移除應用程式內建的自我更新功能.
 - 備份與還原改為優先使用主機上的 mongodump / mongorestore; 主機未安裝 MongoDB Database Tools 時, 自動改用 MongoDB 容器內的工具 (透過 docker exec 搭配 docker cp 在容器與主機間傳遞 dump).
 
 ### 修正

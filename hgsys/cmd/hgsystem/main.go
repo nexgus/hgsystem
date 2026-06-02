@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -17,7 +16,6 @@ import (
 	"hgsys/pkg/app"
 	"hgsys/pkg/applog"
 	"hgsys/pkg/repository"
-	"hgsys/pkg/services"
 	"hgsys/pkg/version"
 )
 
@@ -38,14 +36,12 @@ func main() {
 	var (
 		host    = flag.String("H", "localhost", "MongoDB host address (also --host).")
 		port    = flag.Int("p", 27017, "MongoDB port number (also --port).")
-		test    = flag.Bool("T", false, "Test mode: auto-restart instead of \"up to date\" dialog on Update (also --test).")
 		debug   = flag.Bool("d", false, "Enable DEBUG-level console output (also --debug).")
 		nodb    = flag.Bool("nodb", false, "Skip MongoDB connection on startup (GUI-only mode, faster start).")
 		showVer = flag.Bool("version", false, "Print version and exit.")
 	)
 	flag.StringVar(host, "host", "localhost", "MongoDB host address.")
 	flag.IntVar(port, "port", 27017, "MongoDB port number.")
-	flag.BoolVar(test, "test", false, "Test mode.")
 	flag.BoolVar(debug, "debug", false, "Enable DEBUG-level console output.")
 	flag.Parse()
 
@@ -83,15 +79,13 @@ func main() {
 		}
 	}
 
-	repoRoot := detectRepoRoot()
-
 	customerSvc := app.NewCustomerService(repos)
 	worksheetSvc := app.NewWorksheetService(repos)
 	searchSvc := app.NewSearchService(repos)
 	titleSvc := app.NewTitleService(repos)
 	// Backup / System service 需要 *App 來發送事件 / 結束程式; 在 New 之後再注入.
 	backupSvc := app.NewBackupService(nil, client)
-	systemSvc := app.NewSystemService(nil, repoRoot, *test)
+	systemSvc := app.NewSystemService(nil)
 
 	wailsApp := application.New(application.Options{
 		Name:        "hgsystem",
@@ -148,7 +142,6 @@ func setupMacMenu(app *application.App) {
 	menu.AddRole(application.AppMenu)
 
 	sys := menu.AddSubmenu("系統")
-	sys.Add("更新").OnClick(func(*application.Context) { app.Event.Emit("menu:update") })
 	sys.Add("有關").OnClick(func(*application.Context) { app.Event.Emit("menu:about") })
 	sys.AddSeparator()
 	sys.Add("離開").OnClick(func(*application.Context) { app.Event.Emit("menu:exit") })
@@ -161,20 +154,4 @@ func setupMacMenu(app *application.App) {
 	menu.AddRole(application.WindowMenu)
 
 	app.Menu.SetApplicationMenu(menu)
-}
-
-// detectRepoRoot 找出原始碼 repo 的根目錄, 讓 updater 可以對正確的目錄做 pull.
-// 若是從原始碼樹之外的已安裝執行檔執行, 則回退到執行檔所在的目錄.
-func detectRepoRoot() string {
-	if exe, err := os.Executable(); err == nil {
-		if root, err := services.FindRepoRoot(filepath.Dir(exe)); err == nil {
-			return root
-		}
-	}
-	if cwd, err := os.Getwd(); err == nil {
-		if root, err := services.FindRepoRoot(cwd); err == nil {
-			return root
-		}
-	}
-	return ""
 }
