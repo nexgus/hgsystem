@@ -169,56 +169,11 @@ function build_msi {
         || { echo "Error: msibuild failed to patch Environment table." >&2; rm -f "$env_idt"; exit 1; }
     rm -f "$env_idt"
 
-    # wixl 0.106 忽略 Package@SummaryCodepage 屬性, 一律以 cp1252 寫入
-    # Summary Information stream 的 PID_CODEPAGE. 我們的 Description 含中文
-    # (UTF-8 bytes), 在 cp1252 解讀下會顯示為亂碼. 此處後處理 _SummaryInformation
-    # 表將 codepage 由 1252 改為 65001 (UTF-8), 使 Windows installer 與
-    # Programs and Features 能正確顯示中文 description / subject.
-    #
-    # _SummaryInformation 由 msiinfo export 輸出時行尾為 CRLF, 因此 sed 不使用
-    # 行尾錨點 ($); 僅匹配開頭 "1<TAB>1252" 把 1252 改為 65001.
-    echo "Patching _SummaryInformation codepage to UTF-8 (65001)..."
-    local sum_idt tab
-    sum_idt=$(mktemp)
-    tab=$(printf '\t')
-    msiinfo export "bin/${BIN}-${VER}.msi" _SummaryInformation \
-        | sed "s/^1${tab}1252/1${tab}65001/" > "$sum_idt"
-    msibuild "bin/${BIN}-${VER}.msi" -i "$sum_idt" \
-        || { echo "Error: msibuild failed to patch _SummaryInformation." >&2; rm -f "$sum_idt"; exit 1; }
-    rm -f "$sum_idt"
-
-    # 上一段修的是 Summary Information stream (Description / Subject); 而
-    # 「新增/移除程式」清單顯示的名稱來自 Property 表的 ProductName, 存於另一個
-    # 獨立的資料庫字串池. wixl 0.106 的資料庫字串池 codepage 無法編碼中文, 會把
-    # Product@Name 的中文直接丟成空字串 (純 ASCII 名稱則正常). 字串在 wixl 階段
-    # 即已遺失, 事後僅改 codepage 無法救回, 故此處分兩步後處理:
-    #   1. 以 _ForceCodepage 將資料庫字串池 codepage 設為 65001 (UTF-8).
-    #   2. 自渲染後的 .wxs 取回 Product@Name, 以 UTF-8 重新匯入 Property 表的
-    #      ProductName (codepage 已為 65001, 故能正確存入中文).
-    # 如此 Windows 端「新增/移除程式」即顯示正確的中文產品名稱.
-    echo "Patching database codepage to UTF-8 and restoring Chinese ProductName..."
-    local product_name cp_idt prop_idt
-    product_name=$(grep -A1 '<Product Id=' "msi/${BIN}.wxs" \
-        | sed -n 's/.*Name="\(.*\)".*/\1/p' | head -1)
-    if [ -z "$product_name" ]; then
-        echo "Error: failed to extract Product@Name from msi/${BIN}.wxs." >&2
-        exit 1
-    fi
-
-    cp_idt=$(mktemp)
-    # MSI _ForceCodepage 文字檔: 前兩行 (欄名 / 欄型) 空白, 第三行為
-    # "<codepage><TAB>_ForceCodepage"; 行尾用 CRLF 與 msiinfo export 一致.
-    printf '\r\n\r\n65001\t_ForceCodepage\r\n' > "$cp_idt"
-    msibuild "bin/${BIN}-${VER}.msi" -i "$cp_idt" \
-        || { echo "Error: msibuild failed to set database codepage." >&2; rm -f "$cp_idt"; exit 1; }
-    rm -f "$cp_idt"
-
-    prop_idt=$(mktemp)
-    msiinfo export "bin/${BIN}-${VER}.msi" Property \
-        | sed "s|^ProductName${tab}.*|ProductName${tab}${product_name}|" > "$prop_idt"
-    msibuild "bin/${BIN}-${VER}.msi" -i "$prop_idt" \
-        || { echo "Error: msibuild failed to restore ProductName." >&2; rm -f "$prop_idt"; exit 1; }
-    rm -f "$prop_idt"
+    # 註: MSI metadata (ProductName / Description) 一律使用 ASCII, 不做 codepage
+    # 後處理. Windows Installer 以 IsValidCodePage 驗證資料庫與 Summary Information
+    # stream 的 codepage, 而 UTF-8 (65001) 非系統安裝之 code page, 驗證不過會使
+    # msiexec 拒絕開啟封裝 (錯誤: 不是正常的 Windows installer 封裝). 故沿用 wixl
+    # 預設之 cp1252 / neutral codepage; 內容皆 ASCII, 不會亂碼亦可正常安裝.
 }
 
 # mklink 為兩個目標平台各建一組短 symlink: 無後綴指向 darwin/arm64,

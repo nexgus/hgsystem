@@ -37,7 +37,7 @@ bash build.sh
    - 將 `frontend/dist/` 複製為 `hgsys/cmd/hgsystem/dist/`, 供 `//go:embed all:dist` 內嵌進執行檔. Go 之 embed 不允許 `..` 跨層, 故必須以複製而非符號連結方式置入.
 1. 由 `hgsys/cmd/hgsystem/icon.ico` (眼鏡圖示, 取自 Noto Emoji U+1F453, Apache-2.0 授權) 以 `rsrc` 產生 `rsrc_windows_amd64.syso` (不入版控). `go build` 偵測到此檔即自動連結, 使 windows/amd64 執行檔帶有應用程式圖示 (檔案總管 / 工作列). 同一張圖示之 `icon.png` 另由 `//go:embed` 內嵌, 經 `application.Options.Icon` 供 Wails 視窗使用.
 1. 依序編譯 darwin/arm64 之 hgsystem (`CGO_ENABLED=1`, 以 `-extldflags '-mmacosx-version-min=26.0'` 對齊 Wails alpha.95 內含之 Objective-C 預編譯物件) 與 windows/amd64 之 hgsystem (`CGO_ENABLED=1`, `CC=x86_64-w64-mingw32-gcc`, 以 `-H windowsgui` 指定 GUI subsystem, 避免雙擊時跳出多餘的 console 視窗).
-1. 將 `msi/hgsystem.wxs.in` 之 `@VERSION@` 替換為當前版本後寫入 `msi/hgsystem.wxs` (不入版控), 再交由 wixl 編譯為 Windows MSI 安裝程式. 末對 MSI 進行三項後處理: (a) Environment table 補入"解除安裝時自系統 PATH 移除安裝目錄"之語意 (詳見第 6.2 節); (b) `_SummaryInformation` 之 codepage 由 1252 改為 65001 (UTF-8), 使 Windows 端能正確顯示中文 description (詳見第 6.3 節); (c) 將資料庫字串池 codepage 設為 65001 並補回中文 `ProductName`, 使「新增 / 移除程式」顯示正確之中文產品名稱 (詳見第 6.4 節).
+1. 將 `msi/hgsystem.wxs.in` 之 `@VERSION@` 替換為當前版本後寫入 `msi/hgsystem.wxs` (不入版控), 再交由 wixl 編譯為 Windows MSI 安裝程式, 並對 MSI 之 Environment table 後處理, 補入解除安裝時自系統 PATH 移除安裝目錄之語意 (詳見第 6.2 節). MSI metadata (ProductName / Description) 一律為 ASCII, 不做 codepage 後處理 (原因詳見第 6.3 節).
 1. 建立 `bin/hgsystem`, `bin/hgsystem.exe` 與 `bin/hgsystem.msi` 三個 symlink, 分別指向當前平台之執行檔與 MSI.
 
 產出檔置於 `bin/`, 檔名形如:
@@ -145,10 +145,8 @@ ProductCode 可於原始 .msi 上以 `msiinfo export <當初的 .msi> Property` 
 
 wixl (msitools 0.106) 對 `<Environment>` 元素之 `Permanent="no"` 並未發出對應之 MSI Name `-` 前綴, 導致解除安裝階段不會自動從系統 PATH 移除 `INSTALLDIR`, 多次升級會累積重複條目. `build.sh` 於 wixl 編譯後以 `msiinfo export Environment | sed | msibuild -i` 將 `=*PATH` 後處理為 `=-*PATH`, 補入"解除安裝時移除"之語意.
 
-### 6.3 wixl 對 SummaryCodepage 之忽略
+### 6.3 MSI metadata 一律使用 ASCII (codepage 限制)
 
-wixl (msitools 0.106) 不處理 `Package` 元素之 `SummaryCodepage` 屬性, 一律以 `1252` 寫入 `_SummaryInformation` stream 之 PID_CODEPAGE. hgsystem 之 description 含中文, 若以 cp1252 解讀則 Windows installer 與 Programs and Features 將顯示亂碼. `build.sh` 於 wixl 編譯後以 `msiinfo export _SummaryInformation | sed | msibuild -i` 將該值由 `1252` 改為 `65001` (UTF-8), 使 Windows 端正確解碼.
+Windows Installer 以 `IsValidCodePage` 驗證資料庫字串池與 `_SummaryInformation` stream 的 codepage, 而 UTF-8 (`65001`) 並非系統安裝之 code page (`IsValidCodePage` 回傳 false), 驗證不過時 `msiexec` 會直接拒絕開啟封裝, 顯示不是正常的 Windows installer 封裝而完全無法安裝. 因此 `Product@Name` 與 `Package@Description` 一律使用 ASCII, 不設 `SummaryCodepage`, 由 wixl 以預設 cp1252 (Summary) 與 neutral (資料庫字串池) 寫入; 內容皆 ASCII 故不會亂碼亦可正常安裝. 此設定與同一工具鏈產出, 經實機驗證可安裝之 wova MSI 一致.
 
-### 6.4 wixl 無法寫入非 ASCII 之 ProductName
-
-第 6.3 節修的是 Summary Information stream (description / subject); 而「新增 / 移除程式」清單顯示的名稱來自 `Property` 表的 `ProductName`, 存於另一個獨立的資料庫字串池. wixl (msitools 0.106) 之資料庫字串池 codepage 無法編碼中文, 會把 `Product@Name` 的中文直接丟成空字串 (純 ASCII 名稱則正常). 由於字串在 wixl 階段即已遺失, 事後僅改 codepage 無法救回, 故 `build.sh` 於 wixl 編譯後分兩步後處理: (1) 以 `_ForceCodepage` 將資料庫字串池 codepage 設為 `65001` (UTF-8); (2) 自渲染後的 `msi/hgsystem.wxs` 取回 `Product@Name`, 以 `msiinfo export Property | sed | msibuild -i` 將 `ProductName` 補回中文值. 兩步須照此順序, 後者方能於 UTF-8 codepage 下正確存入. `ARPPRODUCTICON` 與 `Icon` 元素 (清單圖示) 為純 ASCII, 不受此限, 由 wixl 直接寫入.
+> 註: 早期版本曾將兩處 codepage 後處理為 `65001` 以顯示中文 ProductName / description, 但 `65001` 無法通過 Windows 的 `IsValidCodePage` 驗證, 導致 MSI 在 Windows 端無法開啟. 若日後需於 metadata 顯示繁體中文, 須改用 cp950 (Big5) 等系統實際安裝之 code page, 而非 UTF-8.

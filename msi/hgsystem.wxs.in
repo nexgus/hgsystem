@@ -17,23 +17,23 @@
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*"
-           Name="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (hgsystem)"
+           Name="hgsystem"
            Language="1033"
            Version="@VERSION@"
            Manufacturer="Nexgus"
            UpgradeCode="7C12F6AC-EDAB-4539-BFB3-645EDD61BA4C">
 
     <!--
-      SummaryCodepage="65001" 將 Summary Information stream 設為 UTF-8,
-      使 Description / Comments 內的 Chinese 字串可被 Windows installer
-      正確顯示, 不被 default cp1252 解讀成亂碼.
+      MSI metadata (Name / Description) 一律使用 ASCII. Windows Installer 以
+      IsValidCodePage 驗證資料庫與 Summary Information stream 的 codepage,
+      UTF-8 (65001) 非系統安裝之 code page, 驗證不過會使 msiexec 拒絕開啟封裝.
+      故不設 SummaryCodepage, 由 wixl 以預設 cp1252 寫入; 內容皆 ASCII 故無亂碼.
     -->
     <Package InstallerVersion="500"
              Compressed="yes"
              InstallScope="perMachine"
-             SummaryCodepage="65001"
-             Description="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
-             Manufacturer="Nexgus" />
+             Description="hgsystem - optician customer and worksheet management system"
+             Manufacturer="hgsystem" />
 
     <MajorUpgrade AllowSameVersionUpgrades="yes"
                   DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -57,6 +57,16 @@
                   Source="bin/hgsystem-@VERSION@-windows-amd64.exe"
                   Name="hgsystem.exe"
                   KeyPath="yes" />
+            <!--
+              Start 功能表捷徑 (非 advertised). Name 須為 ASCII 以維持資料庫
+              neutral codepage (見 6.3 節); 圖示沿用 exe 內嵌之 rsrc icon.
+              捷徑檔隨本 component 一併安裝/解除, 無須額外 RemoveFile.
+            -->
+            <Shortcut Id="HgsystemStartMenuShortcut"
+                      Directory="ProgramMenuFolder"
+                      Name="hgsystem"
+                      Target="[INSTALLDIR]hgsystem.exe"
+                      WorkingDirectory="INSTALLDIR" />
           </Component>
 
           <!--
@@ -82,6 +92,9 @@
 
         </Directory>
       </Directory>
+
+      <!-- Start 功能表 (全使用者 Programs), 供上方 Shortcut 放置入口. -->
+      <Directory Id="ProgramMenuFolder" />
     </Directory>
 
     <Feature Id="Main" Title="hgsystem" Level="1">
