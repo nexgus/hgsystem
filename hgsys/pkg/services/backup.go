@@ -256,7 +256,10 @@ func runStreamed(ctx context.Context, name string, args []string, onLine func(st
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start %s: %w", name, err)
 	}
-	go forwardLines(stderr, onLine)
+	// 先把 stderr 讀乾淨再 Wait: StderrPipe 文件明定在所有讀取完成前呼叫 Wait 是錯的.
+	scanErrc := make(chan error, 1)
+	go func() { scanErrc <- forwardLines(stderr, onLine) }()
+	scanErr := <-scanErrc
 	if err := cmd.Wait(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -264,10 +267,13 @@ func runStreamed(ctx context.Context, name string, args []string, onLine func(st
 		}
 		return err
 	}
+	if scanErr != nil {
+		return fmt.Errorf("read %s output: %w", name, scanErr)
+	}
 	return nil
 }
 
-func forwardLines(r io.Reader, onLine func(string)) {
+func forwardLines(r io.Reader, onLine func(string)) error {
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 64*1024), 1024*1024)
 	for sc.Scan() {
@@ -277,4 +283,5 @@ func forwardLines(r io.Reader, onLine func(string)) {
 			onLine(line)
 		}
 	}
+	return sc.Err()
 }
