@@ -14,26 +14,24 @@
     * 降級維持預設拒絕.
     * 安裝範圍 perMachine, 安裝目錄 %ProgramFiles%\hgsystem\,
       Environment 以 System=yes 寫入系統 PATH (HKLM), 全使用者可見.
+    * 含中文之 metadata (Product@Name / Shortcut@Name / Package@Description)
+      由 build.sh 以 cp950 (Big5) 後處理寫入. wixl 預設 neutral codepage 無法
+      儲存非 ASCII 字串; cp950 為 Windows 內建繁中 code page, 可通過
+      IsValidCodePage 驗證, 涵蓋本產品全部中文字.
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*"
-           Name="hgsystem"
+           Name="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
            Language="1033"
            Version="@VERSION@"
-           Manufacturer="Nexgus"
+           Manufacturer="HGSystem"
            UpgradeCode="7C12F6AC-EDAB-4539-BFB3-645EDD61BA4C">
 
-    <!--
-      MSI metadata (Name / Description) 一律使用 ASCII. Windows Installer 以
-      IsValidCodePage 驗證資料庫與 Summary Information stream 的 codepage,
-      UTF-8 (65001) 非系統安裝之 code page, 驗證不過會使 msiexec 拒絕開啟封裝.
-      故不設 SummaryCodepage, 由 wixl 以預設 cp1252 寫入; 內容皆 ASCII 故無亂碼.
-    -->
     <Package InstallerVersion="500"
              Compressed="yes"
              InstallScope="perMachine"
-             Description="hgsystem - optician customer and worksheet management system"
-             Manufacturer="hgsystem" />
+             Description="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
+             Manufacturer="HGSystem" />
 
     <MajorUpgrade AllowSameVersionUpgrades="yes"
                   DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -41,9 +39,9 @@
     <Media Id="1" Cabinet="hgsystem.cab" EmbedCab="yes" />
 
     <!--
-      Icon 與 ARPPRODUCTICON 使「新增/移除程式」清單於本產品名稱旁顯示眼鏡
-      圖示. SourceFile 之相對路徑以 wixl 之 CWD (repo root) 為基準, 指向與
-      Windows exe 嵌入之 rsrc 相同的 icon.ico. Icon@Id 依慣例以 .ico 結尾.
+      Icon 與 ARPPRODUCTICON 使「新增/移除程式」清單於本產品名稱旁顯示眼鏡圖示.
+      SourceFile 之相對路徑以 wixl 之 CWD (repo root) 為基準. Icon@Id 依慣例以
+      .ico 結尾.
     -->
     <Icon Id="hgsystem.ico" SourceFile="hgsys/cmd/hgsystem/icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="hgsystem.ico" />
@@ -57,22 +55,17 @@
                   Source="bin/hgsystem-@VERSION@-windows-amd64.exe"
                   Name="hgsystem.exe"
                   KeyPath="yes" />
-            <!--
-              Start 功能表捷徑 (非 advertised). Name 須為 ASCII 以維持資料庫
-              neutral codepage (見 6.3 節); 圖示沿用 exe 內嵌之 rsrc icon.
-              捷徑檔隨本 component 一併安裝/解除, 無須額外 RemoveFile.
-            -->
+            <!-- 非 advertised 捷徑; 隨 component 安裝/解除, 無須 RemoveFile. -->
             <Shortcut Id="HgsystemStartMenuShortcut"
                       Directory="ProgramMenuFolder"
-                      Name="hgsystem"
+                      Name="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
                       Target="[INSTALLDIR]hgsystem.exe"
                       WorkingDirectory="INSTALLDIR" />
           </Component>
 
           <!--
             Environment 元素不可作為 KeyPath, 故以 dummy registry value
-            (HKLM\Software\hgsystem\installed) 充當本 component 之 KeyPath,
-            為 WiX 慣例做法.
+            (HKLM\Software\hgsystem\installed) 充當本 component 之 KeyPath.
           -->
           <Component Id="HgsystemPath" Guid="*" Win64="yes">
             <RegistryValue Root="HKLM"

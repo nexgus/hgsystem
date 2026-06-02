@@ -169,11 +169,62 @@ function build_msi {
         || { echo "Error: msibuild failed to patch Environment table." >&2; rm -f "$env_idt"; exit 1; }
     rm -f "$env_idt"
 
-    # 註: MSI metadata (ProductName / Description) 一律使用 ASCII, 不做 codepage
-    # 後處理. Windows Installer 以 IsValidCodePage 驗證資料庫與 Summary Information
-    # stream 的 codepage, 而 UTF-8 (65001) 非系統安裝之 code page, 驗證不過會使
-    # msiexec 拒絕開啟封裝 (錯誤: 不是正常的 Windows installer 封裝). 故沿用 wixl
-    # 預設之 cp1252 / neutral codepage; 內容皆 ASCII, 不會亂碼亦可正常安裝.
+    # cp950 後處理: 含中文之 metadata 以 cp950 (Big5) 存入 MSI, 取代 wixl 預設
+    # 的 neutral/cp1252. 分三步:
+    #
+    # 1. Summary codepage 改 950, 且把 Description/Subject 重新匯入為 Big5:
+    #    wixl 以 cp1252 寫入 Summary stream; 中文字在 cp1252 無法表達, 故以
+    #    iconv 將匯出後的 idt 轉成 Big5 再匯回, 並把 codepage 宣告改為 950.
+    #    不可用 65001 (UTF-8): IsValidCodePage(65001) 回傳 false, msiexec 會
+    #    拒絕開啟封裝.
+    #
+    # 2. 資料庫字串池 codepage 設 950 (_ForceCodepage):
+    #    wixl 0.106 資料庫字串池 codepage 為 neutral (0), 不支援非 ASCII 字串.
+    #    以 _ForceCodepage 設為 950 後, libmsi 在後續 import 時自動把 UTF-8
+    #    idt 轉成 Big5 存入 _StringData.
+    #
+    # 3. 重匯入含中文之 Property/Shortcut 欄位:
+    #    wixl 在字串池 codepage=0 時已把中文丟失; 設好 950 後, 以 msiinfo export
+    #    + sed 取回原始中文值再 msibuild -i 補回.
+    local tab sum_idt cp_idt prop_idt sc_idt product_name shortcut_name
+    tab=$(printf '\t')
+
+    echo "Patching Summary Information stream to cp950 (Big5)..."
+    sum_idt=$(mktemp)
+    msiinfo export "bin/${BIN}-${VER}.msi" _SummaryInformation \
+        | sed "s/^1${tab}1252/1${tab}950/" \
+        | iconv -f UTF-8 -t BIG5//TRANSLIT > "$sum_idt"
+    msibuild "bin/${BIN}-${VER}.msi" -i "$sum_idt" \
+        || { echo "Error: msibuild failed to patch Summary codepage." >&2; rm -f "$sum_idt"; exit 1; }
+    rm -f "$sum_idt"
+
+    echo "Setting database codepage to cp950..."
+    cp_idt=$(mktemp)
+    printf '\r\n\r\n950\t_ForceCodepage\r\n' > "$cp_idt"
+    msibuild "bin/${BIN}-${VER}.msi" -i "$cp_idt" \
+        || { echo "Error: msibuild failed to set database codepage." >&2; rm -f "$cp_idt"; exit 1; }
+    rm -f "$cp_idt"
+
+    echo "Restoring Chinese ProductName..."
+    product_name=$(grep -A1 '<Product Id=' "msi/${BIN}.wxs" \
+        | sed -n 's/.*Name="\(.*\)".*/\1/p' | head -1)
+    prop_idt=$(mktemp)
+    msiinfo export "bin/${BIN}-${VER}.msi" Property \
+        | sed "s|^ProductName${tab}.*|ProductName${tab}${product_name}|" > "$prop_idt"
+    msibuild "bin/${BIN}-${VER}.msi" -i "$prop_idt" \
+        || { echo "Error: msibuild failed to restore ProductName." >&2; rm -f "$prop_idt"; exit 1; }
+    rm -f "$prop_idt"
+
+    echo "Restoring Chinese Shortcut name..."
+    shortcut_name=$(grep -A6 'Id="HgsystemStartMenuShortcut"' "msi/${BIN}.wxs" \
+        | sed -n 's/.*Name="\(.*\)".*/\1/p' | head -1)
+    sc_idt=$(mktemp)
+    msiinfo export "bin/${BIN}-${VER}.msi" Shortcut \
+        | sed "s|^\(HgsystemStartMenuShortcut${tab}ProgramMenuFolder${tab}\)[^${tab}]*|\1${shortcut_name}|" \
+        > "$sc_idt"
+    msibuild "bin/${BIN}-${VER}.msi" -i "$sc_idt" \
+        || { echo "Error: msibuild failed to restore Shortcut name." >&2; rm -f "$sc_idt"; exit 1; }
+    rm -f "$sc_idt"
 }
 
 # mklink 為兩個目標平台各建一組短 symlink: 無後綴指向 darwin/arm64,
