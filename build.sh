@@ -137,6 +137,8 @@ function build_frontend {
     echo "Copying frontend/dist to ${PKG}/cmd/${BIN}/dist (for //go:embed)..."
     rm -rf "${PKG}/cmd/${BIN}/dist"
     cp -r frontend/dist "${PKG}/cmd/${BIN}/dist"
+    # 還原被 cp 洗掉的佔位檔, 讓 git 樹維持乾淨 (見 .gitignore 說明).
+    touch "${PKG}/cmd/${BIN}/dist/.gitkeep"
 }
 
 # build_msi 將 windows/amd64 binary 打包為 hgsystem-<VER>.msi.

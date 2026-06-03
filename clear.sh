@@ -4,7 +4,7 @@
 #
 # 移除清單對齊 .gitignore 中的 build artifact 條目:
 #   * bin/                          — Go binaries + MSI + symlink
-#   * hgsys/cmd/hgsystem/dist/      — embed 用的 frontend dist 副本
+#   * hgsys/cmd/hgsystem/dist/      — embed 用的 frontend dist 副本 (保留 .gitkeep)
 #   * frontend/dist/                — Vite 輸出
 #   * frontend/bindings/            — wails3 generate bindings 產出的 TS
 #   * frontend/node_modules/        — npm install 的依賴
@@ -18,7 +18,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 TARGETS=(
     bin
-    hgsys/cmd/hgsystem/dist
     frontend/dist
     frontend/bindings
     frontend/node_modules
@@ -32,5 +31,13 @@ for path in "${TARGETS[@]}"; do
         rm -rf -- "$path"
     fi
 done
+
+# dist/ 含 git-tracked 的 .gitkeep (供 //go:embed all:dist 在乾淨 checkout 匹配),
+# 只清內容、保留 .gitkeep, 才符合「還原到剛簽出狀態」.
+DIST=hgsys/cmd/hgsystem/dist
+if [ -d "$DIST" ]; then
+    echo "Cleaning $DIST (keep .gitkeep)"
+    find "$DIST" -mindepth 1 ! -name .gitkeep -delete
+fi
 
 echo "Done."
