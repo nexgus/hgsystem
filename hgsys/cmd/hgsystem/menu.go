@@ -163,9 +163,11 @@ func showAbout(app *application.App) {
 	}
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:      aboutWindowName,
-		Title:     "關於 " + appDisplayName,
-		Width:     460,
+		Name:  aboutWindowName,
+		Title: "關於 " + appDisplayName,
+		// 寬度取能舒適完整顯示「第三方授權」表格之值; 表格採固定佈局 (見
+		// About.vue), 內容會自動換行, 故任何寬度皆不會出現水平捲軸, 此值僅為易讀.
+		Width:     600,
 		Height:    600,
 		MinWidth:  380,
 		MinHeight: 420,

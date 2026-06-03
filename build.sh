@@ -1,7 +1,16 @@
 #!/bin/bash
 # 編譯 hgsystem (darwin/arm64 + windows/amd64) Wails v3 + Vue 3 + TS 桌面 app.
 #
+# 用法: bash build.sh [--license]
+#   --license  建置時重新掃描第三方授權: Go 依賴重產 frontend/src/licenses-go.ts
+#              (需 jq, 缺則自動以 Homebrew 安裝), 前端 npm 依賴重產
+#              frontend/src/licenses-frontend.ts (Vite + rollup-plugin-license,
+#              只取實際打包進 dist 者); 未指定則沿用既有檔案. 依賴 (hgsys/go.mod
+#              或 frontend/package.json) 變動後應加此旗標.
+#
 # 流程:
+#   0a. (--license) 掃描 Go 授權, 重產 frontend/src/licenses-go.ts.
+#   0b. (--license) 掃描前端 npm 授權, 重產 frontend/src/licenses-frontend.ts.
 #   1. (依需要) nvm use 20.
 #   2. (依需要) npm install frontend 依賴.
 #   3. 確保 wails3 CLI 與 mingw-w64 已安裝 (windows 交叉編譯需要).
@@ -26,6 +35,20 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 # BIN: 輸出 binary 名稱與 cmd/ 子目錄名稱 (使用者可見的應用程式名稱).
 PKG=hgsys
 BIN=hgsystem
+
+# 旗標: --license 時於建置前重新掃描第三方授權 (見 gen_licenses); 預設不掃描,
+# 沿用既有 frontend/src/licenses-go.ts.
+GEN_LICENSE=0
+for arg in "$@"; do
+    case "$arg" in
+        --license) GEN_LICENSE=1 ;;
+        *)
+            echo "Error: unknown argument: $arg" >&2
+            echo "用法: bash build.sh [--license]" >&2
+            exit 1
+            ;;
+    esac
+done
 
 COMMIT=$(git describe --match=NeVeRmAtCh --always --abbrev=8 --dirty)
 GOVER=$(go version | cut -d ' ' -f 3)
@@ -111,6 +134,20 @@ function ensure_wixl {
     brew install msitools || { echo "Error: failed to install msitools." >&2; exit 1; }
 }
 
+# ensure_jq 確保 jq 已安裝 (gen-licenses.sh 以其解析 go list 的 JSON 輸出).
+# 僅於 --license 時需要.
+function ensure_jq {
+    if command -v jq >/dev/null 2>&1; then
+        return
+    fi
+    echo "jq not found, installing via Homebrew..."
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "Error: Homebrew not found, cannot auto-install." >&2
+        exit 1
+    fi
+    brew install jq || { echo "Error: failed to install jq." >&2; exit 1; }
+}
+
 # gen_winicon 將 cmd/${BIN}/icon.ico 編成 .syso 檔, go build 偵測到
 # cmd/${BIN}/rsrc_windows_amd64.syso 即自動連結 (僅作用於 windows/amd64),
 # 使 Windows 檔案總管 / 工作列顯示應用程式圖示. icon.png (供 Wails 視窗圖示
@@ -123,6 +160,15 @@ function gen_winicon {
         || { echo "Error: failed to generate windows icon resource." >&2; exit 1; }
 }
 
+# gen_licenses 重新產生 frontend/src/licenses-go.ts (間接依賴授權清單), 僅於
+# 傳入 --license 時執行. 須早於 build_frontend 的 Vite 編譯, 重新產生的
+# licenses-go.ts 才會被打包進 dist. 機制與範圍見 scripts/gen-licenses.sh 與
+# README.md §5.
+function gen_licenses {
+    echo "Scanning third-party licenses (regenerating frontend/src/licenses-go.ts)..."
+    bash scripts/gen-licenses.sh
+}
+
 function build_frontend {
     echo "Generating Wails bindings..."
     # wails3 generate 必須在含 go.mod 的目錄跑, 故進入 ${PKG}/. cmd/${BIN}
@@ -130,6 +176,14 @@ function build_frontend {
     # 所有 Service. 輸出指向 repo root 的 frontend/bindings/.
     (cd "${PKG}" && "${WAILS3}" generate bindings -ts -silent -clean=true \
         -d "../frontend/bindings" "./cmd/${BIN}")
+
+    if [ "${GEN_LICENSE}" -eq 1 ]; then
+        # 先以 GEN_LICENSES=1 跑一次 vite build (略過 vue-tsc), 由 rollup-plugin-license
+        # 蒐集實際打包進 dist 的 npm 套件授權, 重新產生 frontend/src/licenses-frontend.ts;
+        # 隨後正式 build 才會把更新後的清單一併打包進去.
+        echo "Scanning frontend (npm) licenses (regenerating frontend/src/licenses-frontend.ts)..."
+        (cd frontend && GEN_LICENSES=1 npx vite build >/dev/null)
+    fi
 
     echo "Building frontend (Vite)..."
     (cd frontend && npm run build)
@@ -262,12 +316,26 @@ ensure_wails3
 ensure_npm_install
 ensure_mingw
 ensure_wixl
+# --license 時才需要 jq (gen-licenses.sh 解析 go list 的 JSON 輸出).
+if [ "${GEN_LICENSE}" -eq 1 ]; then
+    ensure_jq
+fi
 
 # wails3 generate bindings 需要 deps 已下載.
 (cd "${PKG}" && go mod download)
 
-# 先編 hgupgrade 供 hgsystem 內嵌; 須早於 bindings 產生 (型別檢查需要 embed 檔).
+# 先編 hgupgrade 供 hgsystem 內嵌; 須早於 bindings 產生 (型別檢查需要 embed 檔),
+# 也須早於下方的授權掃描: gen-licenses.sh 的 `go list ./cmd/hgsystem` 會解析該
+# 套件的 //go:embed hgupgrade/..., 缺這些 binary 會失敗 (clean checkout 後尤然).
 build_upgrader
+
+# --license: 重新掃描 Go 第三方授權; 須在 build_upgrader 之後 (go list 需內嵌檔
+# 存在), 且早於 build_frontend 的 Vite 編譯 (重產的 licenses-go.ts 才會打包進
+# dist). 前端 npm 授權則於 build_frontend 內掃描.
+if [ "${GEN_LICENSE}" -eq 1 ]; then
+    gen_licenses
+fi
+
 build_frontend
 gen_winicon
 

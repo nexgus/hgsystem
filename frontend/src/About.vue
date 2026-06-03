@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { Browser } from "@wailsio/runtime";
 import { SystemService } from "../bindings/hgsys/pkg/app";
 import type { AboutInfo } from "../bindings/hgsys/pkg/app/models";
+import { THIRD_PARTY_LICENSES } from "./licenses";
+import type { ThirdPartyLicense } from "./licenses";
+import { GO_DIRECT_LICENSES, GO_TRANSITIVE_LICENSES } from "./licenses-go";
+import { FRONTEND_DIRECT_LICENSES, FRONTEND_TRANSITIVE_LICENSES } from "./licenses-frontend";
 
 type Tab = "about" | "license";
 
@@ -57,6 +62,143 @@ async function copyAbout() {
   }
 }
 
+// openURL 以系統預設瀏覽器開啟連結; 直接於 webview 內導航會取代「關於」頁面.
+function openURL(url: string) {
+  Browser.OpenURL(url);
+}
+
+// 授權分頁分三部分: 直接引用表格 / 間接引用表格 / 各授權條文. 條文依「授權
+// 種類」去重 (同種授權只顯示一次條文), 但仍逐一保留各元件的著作權聲明
+// (copyright notice) 以符合 MIT / BSD / Apache 等授權的散布要求; 表格的授權
+// 種類為錨點, 點擊捲動至對應的條文.
+
+// NOTICE_SEP 為 licenses-go.ts 中附加 NOTICE 段落的分隔標記.
+const NOTICE_SEP = "--- NOTICE ---";
+
+// licAnchor 由授權種類產生錨點 id (每種授權對應唯一錨點).
+function licAnchor(type: string): string {
+  return "lic-" + type.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+// splitNotice 將條文與其附帶的 NOTICE 段落分開.
+function splitNotice(text: string): { body: string; notice: string } {
+  const i = text.indexOf(NOTICE_SEP);
+  if (i < 0) return { body: text, notice: "" };
+  return { body: text.slice(0, i).trimEnd(), notice: text.slice(i + NOTICE_SEP.length).trim() };
+}
+
+// extractCopyrights 取出文字中所有著作權行 (行首, 無縮排的 Copyright 行).
+// 比對大小寫敏感: 著作權聲明慣例為大寫起首的 "Copyright", 藉此避開 BSD 條文
+// 中因換行而以小寫 "copyright notice, ..." 起首的續行 (那是條文內容, 非聲明).
+function extractCopyrights(text: string): string[] {
+  return (text.match(/^Copyright\b.*$/gm) ?? []).map((s) => s.trim());
+}
+
+// stripCopyrights 移除行首的著作權行 (其餘交由區塊統一彙整), 並收斂多餘空行.
+// 同樣大小寫敏感, 以免誤刪 BSD 條文中以小寫 copyright 起首的續行.
+function stripCopyrights(text: string): string {
+  return text
+    .split("\n")
+    .filter((l) => !/^Copyright\b/.test(l))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+interface LicenseBlock {
+  anchor: string;
+  type: string;
+  copyrights: string[];
+  body: string;
+  notices: string[];
+}
+
+// reflow 將為固定欄寬而硬換行的條文重排為段落, 使其於視窗寬度內自然換行而
+// 不致鋸齒 (硬換行 + 二次自動折行的疊加). 規則: 空行維持段落分隔; 以項目
+// 符號 (* - •) 或編號項 ((a) / 1. 等) 起首的行另起一行; 其餘單一硬換行視為
+// 同段續行, 併為空白. licenses-go.ts 取自各 LICENSE 原檔多含 80 欄硬換行,
+// 需經此處理; licenses.ts 為已手動排版的文字, 不套用以免破壞既有結構.
+function reflow(text: string): string {
+  const out: string[] = [];
+  for (const raw of text.split("\n")) {
+    if (raw.trim() === "") {
+      out.push("");
+      continue;
+    }
+    const t = raw.trim();
+    const isItem = /^[*\-•]\s/.test(t) || /^\d+[.)]\s/.test(t) || /^\([0-9a-zA-Z]+\)\s/.test(t);
+    if (out.length === 0 || out[out.length - 1] === "" || isItem) {
+      out.push(t);
+    } else {
+      out[out.length - 1] += " " + t;
+    }
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// buildLicenseBlocks 依授權種類彙整: 同種授權的條文僅取一份代表全文, 但收集
+// 所有元件的著作權聲明與 NOTICE. reflowBody 為 true 時 (Go 依賴取自原始
+// LICENSE 檔) 對條文與 NOTICE 套用 reflow.
+function buildLicenseBlocks(items: { comp: ThirdPartyLicense; reflowBody: boolean }[]): LicenseBlock[] {
+  const map = new Map<string, LicenseBlock>();
+  const order: LicenseBlock[] = [];
+  for (const { comp, reflowBody } of items) {
+    const { body, notice } = splitNotice(comp.text);
+    let blk = map.get(comp.type);
+    if (!blk) {
+      const b = stripCopyrights(body);
+      blk = { anchor: licAnchor(comp.type), type: comp.type, copyrights: [], body: reflowBody ? reflow(b) : b, notices: [] };
+      map.set(comp.type, blk);
+      order.push(blk);
+    }
+    for (const cp of extractCopyrights(comp.text)) {
+      if (!blk.copyrights.includes(cp)) blk.copyrights.push(cp);
+    }
+    const n = notice ? (reflowBody ? reflow(notice) : notice) : "";
+    if (n && !blk.notices.includes(n)) blk.notices.push(n);
+  }
+  return order;
+}
+
+// blockText 組出單一授權區塊的完整顯示文字: 著作權聲明 + 條文 + NOTICE.
+function blockText(b: LicenseBlock): string {
+  const parts: string[] = [];
+  if (b.copyrights.length) parts.push(b.copyrights.join("\n"));
+  parts.push(b.body);
+  for (const n of b.notices) parts.push("NOTICE\n\n" + n);
+  return parts.join("\n\n");
+}
+
+const licenseBlocks = buildLicenseBlocks([
+  ...THIRD_PARTY_LICENSES.map((comp) => ({ comp, reflowBody: false })),
+  ...FRONTEND_DIRECT_LICENSES.map((comp) => ({ comp, reflowBody: true })),
+  ...FRONTEND_TRANSITIVE_LICENSES.map((comp) => ({ comp, reflowBody: true })),
+  ...GO_DIRECT_LICENSES.map((comp) => ({ comp, reflowBody: true })),
+  ...GO_TRANSITIVE_LICENSES.map((comp) => ({ comp, reflowBody: true })),
+]);
+
+// 兩個表格逐元件列出; 授權種類連結指向去重後的對應條文區塊. 直接引用表合併
+// 圖示 (licenses.ts)、前端 npm 直接依賴 (licenses-frontend.ts) 與 Go 直接依賴
+// (licenses-go.ts); 間接引用表合併前端與 Go 的間接依賴.
+function toRows(comps: ThirdPartyLicense[]) {
+  return comps.map((c) => ({ name: c.name, url: c.url, type: c.type, anchor: licAnchor(c.type) }));
+}
+const tables = [
+  {
+    title: "直接引用",
+    rows: toRows([...THIRD_PARTY_LICENSES, ...FRONTEND_DIRECT_LICENSES, ...GO_DIRECT_LICENSES]),
+  },
+  {
+    title: "間接引用 (transitive)",
+    rows: toRows([...FRONTEND_TRANSITIVE_LICENSES, ...GO_TRANSITIVE_LICENSES]),
+  },
+];
+
+// scrollToAnchor 捲動至指定錨點的條文區塊 (授權分頁的捲動容器為 .tab-body).
+function scrollToAnchor(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 onMounted(async () => {
   window.addEventListener("hashchange", onHashChange);
   info.value = await SystemService.GetAbout();
@@ -103,8 +245,42 @@ onUnmounted(() => {
       </footer>
     </section>
 
-    <section v-else class="tab-body placeholder">
-      <p>To Be Implemented</p>
+    <section v-else class="tab-body licenses">
+      <p class="intro">
+        本軟體散布物中引用下列第三方開源元件, 謹此致謝, 並依各自授權條款保留其著作權聲明與授權全文.
+      </p>
+
+      <template v-for="t in tables" :key="t.title">
+        <h3 class="sec-title">{{ t.title }}</h3>
+        <table class="lic-table">
+          <thead>
+            <tr>
+              <th>名稱</th>
+              <th>網站</th>
+              <th>授權</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in t.rows" :key="row.name">
+              <td>{{ row.name }}</td>
+              <td>
+                <a href="#" @click.prevent="openURL(row.url)">{{ row.url }}</a>
+              </td>
+              <td>
+                <a href="#" class="lic-link" @click.prevent="scrollToAnchor(row.anchor)">
+                  {{ row.type }}
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+
+      <h3 class="sec-title">各授權條文</h3>
+      <div v-for="blk in licenseBlocks" :id="blk.anchor" :key="blk.anchor" class="lic-block">
+        <h4>{{ blk.type }}</h4>
+        <pre>{{ blockText(blk) }}</pre>
+      </div>
     </section>
   </div>
 </template>
@@ -200,12 +376,97 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
-.placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.licenses .intro {
+  margin: 0 0 14px;
   color: #6c6c70;
+  font-size: 12px;
+}
+
+.lic-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+  font-size: 12px;
+  /* 固定佈局: 欄寬不隨內容撐大, 長 URL / module 名稱於欄內換行, 表格永不
+     超出視窗 (避免授權分頁出現水平捲軸). */
+  table-layout: fixed;
+}
+
+.lic-table th,
+.lic-table td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid #e5e5ea;
+  vertical-align: top;
+  /* 覆蓋全域 style.css 的 `th, td { white-space: nowrap }`: 授權表需讓長字串
+     (URL / module 路徑) 換行, 否則 nowrap 會使 word-break / overflow-wrap 失效,
+     儲存格撐爆而出現水平捲軸. 授權種類欄另由 .lic-link 維持 nowrap. */
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 名稱欄固定比例, 授權欄固定窄寬 (足以容納 "BSD-3-Clause"), 其餘留給網站欄. */
+.lic-table th:first-child,
+.lic-table td:first-child {
+  width: 34%;
+}
+
+.lic-table th:last-child,
+.lic-table td:last-child {
+  width: 104px;
+}
+
+.lic-table th {
+  font-weight: 600;
+  border-bottom: 1px solid #d1d1d6;
+}
+
+.lic-table td a {
+  color: #0a6cff;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.lic-table td a:hover {
+  text-decoration: underline;
+}
+
+.sec-title {
   font-size: 14px;
+  margin: 18px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #d1d1d6;
+}
+
+.lic-link {
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.lic-block {
+  margin-top: 16px;
+}
+
+.lic-block h4 {
+  font-size: 13px;
+  margin: 0 0 6px;
+}
+
+.lic-block pre {
+  margin: 0;
+  padding: 8px 10px;
+  background-color: #f5f5f7;
+  border: 1px solid #e5e5ea;
+  border-radius: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: break-word;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -213,18 +474,40 @@ onUnmounted(() => {
     background-color: #2c2c2e;
     border-color: #3a3a3c;
   }
+
   .tabs button {
     border-color: #48484a;
   }
+
   .tabs button.active {
     background-color: #1c1c1e;
   }
+
   .full-name,
   .copyright,
-  .placeholder {
+  .licenses .intro {
     color: #98989d;
   }
+
   .about-footer {
+    border-color: #3a3a3c;
+  }
+
+  .sec-title {
+    border-color: #3a3a3c;
+  }
+
+  .lic-table th,
+  .lic-table td {
+    border-color: #3a3a3c;
+  }
+
+  .lic-table td a {
+    color: #4ea1ff;
+  }
+
+  .lic-block pre {
+    background-color: #2c2c2e;
     border-color: #3a3a3c;
   }
 }

@@ -15,7 +15,12 @@ covers only what isn't obvious from the code.
   into hgsystem via `//go:embed` and extracted to a temp dir at update time; see
   [README.md](README.md) §7.
 - `frontend/` — Vue 3 + TS. `src/App.vue` orchestrates the customer/worksheet
-  edit-mode interlock. `bindings/` (generated) and `dist/` (built) aren't committed.
+  edit-mode interlock; `src/About.vue` is the About window (info + third-party
+  license tab). `bindings/` (generated) and `dist/` (built) aren't committed, but
+  the generated license lists `src/licenses-go.ts` / `src/licenses-frontend.ts`
+  are committed (regenerated only by `build.sh --license`; see README §5).
+- `scripts/` — dev-only tooling, not shipped. `gen-licenses.sh` + the standalone
+  `licgen/` module (own `go.mod`) regenerate the Go third-party license list.
 - `deprecated/` — old PySide6 code, reference only; **do not add features here**.
 
 ## Invariants (migrate data before changing)
@@ -42,10 +47,14 @@ covers only what isn't obvious from the code.
   `hgsys/cmd/hgsystem/dist/` before `go build`. Likewise the per-platform
   `hgupgrade` binaries under `cmd/hgsystem/hgupgrade/` (selected by build tags)
   must be built before bindings/`go build` or the embed fails — build.sh's
-  `build_upgrader` runs first.
+  `build_upgrader` runs first. The `--license` scan (`gen-licenses.sh` runs
+  `go list ./cmd/hgsystem`) parses those same embeds, so build.sh sequences it
+  after `build_upgrader` too — otherwise a clean checkout aborts before binaries.
 
 ## Where to look
 
 - Edit-mode interlock lives entirely in `frontend/src/App.vue`; Go services are
   stateless beyond the Mongo connection.
+- Third-party license disclosure (three sources: icon manual in `licenses.ts`,
+  Go + frontend npm auto-scanned via `build.sh --license`): [README.md](README.md) §5.
 - MSI quirks and the post-build `msibuild` workarounds: [README.md](README.md) §6.2–6.3.

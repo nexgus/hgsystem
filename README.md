@@ -13,6 +13,7 @@ hgsystem (豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統) 為一支 Go +
 - hgsystem 需 `CGO_ENABLED=1` 以連結 webview. macOS host 編譯 darwin/arm64 版時連結 WKWebView 由系統工具鏈處理, 無須額外安裝.
 - windows/amd64 交叉編譯需要 mingw 的 C 編譯器 (`x86_64-w64-mingw32-gcc`), 用於連結 Microsoft Edge WebView2 客戶端. 若 PATH 中找不到, `build.sh` 會透過 Homebrew 自動安裝 `mingw-w64`.
 - msitools (含 `wixl`), 用於產出 Windows MSI. 若 PATH 中找不到, `build.sh` 會透過 Homebrew 自動安裝.
+- `jq`, 僅 `build.sh --license` (重新掃描第三方授權) 時需要; 若 PATH 中找不到, `build.sh` 會透過 Homebrew 自動安裝. 前端授權掃描所需之 `rollup-plugin-license` 為 `frontend/` 之 devDependency, 由 `npm install` 自動取得.
 - 執行期 (非編譯期) 須有可連線之 MongoDB 服務. 預設連線 `localhost:27017`, 可由 `-H` / `-p` 旗標調整. 備份與還原功能另需 `mongodump` 與 `mongorestore` 於 PATH.
 
 ## 2. 編譯
@@ -20,10 +21,11 @@ hgsystem (豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統) 為一支 Go +
 以下說明假設位於 repo 根目錄:
 
 ```bash
-bash build.sh
+bash build.sh             # 一般建置
+bash build.sh --license   # 建置, 並先重新掃描 / 更新第三方授權清單 (詳見第 5 節)
 ```
 
-`build.sh` 的行為:
+不加 `--license` 的一般建置沿用既有的授權清單, 不重新掃描. `build.sh` 的行為 (以下為一般建置流程; `--license` 另於產生 bindings 前插入授權掃描步驟, 見第 5 節):
 
 1. 透過 nvm 切換至 Node 20, 缺少時自動安裝.
 1. 偵測 wails3 CLI, 版本不符 `v3.0.0-alpha.95` 時以 `go install` 重新安裝.
@@ -36,7 +38,7 @@ bash build.sh
    - 由 `hgsys/` 內呼叫 `wails3 generate bindings -ts ./cmd/hgsystem`, 由 Go service (`pkg/app` 下之 `CustomerService`, `WorksheetService`, `SearchService`, `TitleService`, `BackupService`, `SystemService`, `UpdateService`) 反推產生 `frontend/bindings/` 之 TypeScript 綁定. 此命令須於含 `go.mod` 之目錄執行, 並指定 `./cmd/hgsystem` 為 pattern, 使 static analyser 找得到 `application.NewService(...)` 之呼叫.
    - 於 `frontend/` 執行 `npm run build`, 經 vue-tsc 型別檢查後由 Vite 輸出 `frontend/dist/`.
    - 將 `frontend/dist/` 複製為 `hgsys/cmd/hgsystem/dist/`, 供 `//go:embed all:dist` 內嵌進執行檔. Go 之 embed 不允許 `..` 跨層, 故必須以複製而非符號連結方式置入.
-1. 由 `hgsys/cmd/hgsystem/icon.ico` (眼鏡圖示, 取自 Noto Emoji U+1F453, Apache-2.0 授權) 以 `rsrc` 產生 `rsrc_windows_amd64.syso` (不入版控). `go build` 偵測到此檔即自動連結, 使 windows/amd64 執行檔帶有應用程式圖示 (檔案總管 / 工作列). 同一張圖示之 `icon.png` 另由 `//go:embed` 內嵌, 經 `application.Options.Icon` 供 Wails 視窗使用.
+1. 由 `hgsys/cmd/hgsystem/icon.ico` (眼鏡圖示, 取自 Noto Emoji U+1F453, SIL OFL 1.1 授權) 以 `rsrc` 產生 `rsrc_windows_amd64.syso` (不入版控). `go build` 偵測到此檔即自動連結, 使 windows/amd64 執行檔帶有應用程式圖示 (檔案總管 / 工作列). 同一張圖示之 `icon.png` 另由 `//go:embed` 內嵌, 經 `application.Options.Icon` 供 Wails 視窗使用.
 1. 依序編譯 darwin/arm64 之 hgsystem (`CGO_ENABLED=1`, 以 `-extldflags '-mmacosx-version-min=26.0'` 對齊 Wails alpha.95 內含之 Objective-C 預編譯物件) 與 windows/amd64 之 hgsystem (`CGO_ENABLED=1`, `CC=x86_64-w64-mingw32-gcc`, 以 `-H windowsgui` 指定 GUI subsystem, 避免雙擊時跳出多餘的 console 視窗).
 1. 將 `msi/hgsystem.wxs.in` 之 `@VERSION@` 替換為當前版本後寫入 `msi/hgsystem.wxs` (不入版控), 再交由 wixl 編譯為 Windows MSI 安裝程式, 並對 MSI 之 Environment table 後處理, 補入解除安裝時自系統 PATH 移除安裝目錄之語意 (詳見第 6.2 節). MSI metadata (ProductName / Description) 一律為 ASCII, 不做 codepage 後處理 (原因詳見第 6.3 節).
 1. 建立 `bin/hgsystem`, `bin/hgsystem.exe` 與 `bin/hgsystem.msi` 三個 symlink, 分別指向當前平台之執行檔與 MSI.
@@ -81,6 +83,14 @@ bash clear.sh
 修改 Go 端 (`hgsys/`) 時, 凡新增 / 刪除 service method 或調整 domain struct 之欄位, 須重跑 `wails3 generate bindings` 重產 `frontend/bindings/`, 否則前端之 TypeScript 型別與實際 ABI 將不一致; 最直接的方式為再跑一次 `bash build.sh`.
 
 修改 Vue 前端 (`frontend/src/`) 時, 由於 `//go:embed all:dist` 於編譯期固化前端產出, 純前端變更亦須重跑 `build.sh` (或至少 `npm run build` + 將 `frontend/dist` 重新複製至 `hgsys/cmd/hgsystem/dist`), 才能於下次 `go build` 時生效.
+
+「關於」視窗的「第三方授權」分頁顯示散布物所引用之第三方開源元件授權, 分「直接引用」與「間接引用」兩表. 授權清單來自三個來源, 其中兩個為自動產生:
+
+- **Go 依賴** (直接 + 間接): [`scripts/gen-licenses.sh`](scripts/gen-licenses.sh) 掃描 `hgsystem` 與 `hgupgrade` 兩執行檔於 darwin + windows 編譯進 binary 的 module, 依 `hgsys/go.mod` 之 require 分直接 / 間接, 偵測授權後產出 [`frontend/src/licenses-go.ts`](frontend/src/licenses-go.ts) (需 `go` 與 `jq`).
+- **前端 npm 依賴**: 由 Vite + `rollup-plugin-license` 於建置時取「實際打包進 `dist`」的套件 (經 tree-shaking, 不含僅建置期用的 TypeScript / Vue 編譯器 / Babel / postcss 等), 依 `frontend/package.json` 之 dependencies 分直接 / 間接, 產出 [`frontend/src/licenses-frontend.ts`](frontend/src/licenses-frontend.ts).
+- **應用圖示** (Noto Emoji): 非 Go / npm 套件, 無清單可掃, 手動維護於 [`frontend/src/licenses.ts`](frontend/src/licenses.ts).
+
+三個 `licenses*.ts` 皆入版控. 凡依賴變動 (`hgsys/go.mod` 或 `frontend/package.json`), 以 **`bash build.sh --license`** 於建置時一併重產上述兩個自動清單, 使授權揭露與實際散布之程式碼一致; 不加 `--license` 的 `build.sh` 沿用既有清單、不重新掃描. (亦可單獨跑 `bash scripts/gen-licenses.sh` 只更新 Go 部分.)
 
 domain 行為涉及與 MongoDB 中既有資料及 `mongodump` 備份檔之相容性, 變更時須留意以下不變式:
 
