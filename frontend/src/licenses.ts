@@ -1,6 +1,7 @@
 // 本檔列出 hgsystem 散布物中「既非 Go module、也非 npm 套件」的第三方素材及其
-// 授權條文, 供「關於」視窗的「第三方授權」分頁顯示. 目前僅應用圖示 (Noto Emoji);
-// 這類素材沒有套件清單可掃, 故手動維護於此.
+// 授權條文或來源標示, 供「關於」視窗的「第三方授權」分頁顯示. 目前有應用圖示 (Noto
+// Emoji) 與 Windows 主選單圖示 (Material Symbols); 這類素材沒有套件清單可掃, 故手動
+// 維護於此.
 //
 // 其餘第三方授權均為自動產生, 不在此檔:
 //   - Go 依賴 (直接 / 間接): scripts/gen-licenses.sh 依 hgsys/go.mod 與實際編譯進
@@ -9,9 +10,13 @@
 //     進 dist 者, 列於 licenses-frontend.ts.
 // 僅於建置期使用 (不隨產品散布) 的工具 (Vite / TypeScript 等) 不列入.
 //
-// 條文逐字保留對應專案 LICENSE 檔的著作權聲明與授權全文, 以符合 SIL OFL 等授權
-// 「散布時須保留著作權與授權聲明」的要求. 為配合視窗寬度閱讀, 原文中為固定欄寬
-// 而設的段內硬換行已攤平 (段內換行改空格, 段落間保留空行), 文字內容不變.
+// 應用圖示 (Noto Emoji) 的條文逐字保留對應專案 LICENSE 檔的著作權聲明與授權全文, 以
+// 符合 SIL OFL 等授權「散布時須保留著作權與授權聲明」的要求. 為配合視窗寬度閱讀, 原文
+// 中為固定欄寬而設的段內硬換行已攤平 (段內換行改空格, 段落間保留空行), 文字內容不變.
+//
+// Windows 主選單圖示 (Material Symbols, 取自 Apache-2.0 的 google/material-design-icons)
+// 的 Apache License 2.0 全文已隨多個同為 Apache-2.0 的 Go 依賴顯示於同一視窗, 故此處僅
+// 作來源標示, 不重複附上全文.
 
 // ThirdPartyLicense 描述單一第三方元件的授權資訊. 亦為 licenses-go.ts 與
 // licenses-frontend.ts 共用的型別.
@@ -72,12 +77,26 @@ This license becomes null and void if any of the above conditions are not met.
 DISCLAIMER
 THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE FONT SOFTWARE.`;
 
-// THIRD_PARTY_LICENSES 為手動維護的素材授權清單 (目前僅應用圖示).
+// MATERIAL_SYMBOLS_NOTICE 為 Windows 主選單圖示 (取自 Google Material Symbols,
+// google/material-design-icons) 的來源標示. 該專案以 Apache License 2.0 授權; 其完整
+// 條文已隨多個同為 Apache-2.0 的 Go 依賴顯示於同一視窗, 故此處僅作來源標示, 不重複附上
+// 全文.
+const MATERIAL_SYMBOLS_NOTICE = `Windows 主選單圖示取自 Google Material Symbols (google/material-design-icons), 以 Apache License 2.0 授權.
+
+完整 Apache License 2.0 條文同本視窗其他 Apache-2.0 元件所示, 亦可見 https://www.apache.org/licenses/LICENSE-2.0.`;
+
+// THIRD_PARTY_LICENSES 為手動維護的素材授權清單 (應用圖示與選單圖示).
 export const THIRD_PARTY_LICENSES: ThirdPartyLicense[] = [
   {
     name: "Noto Emoji",
     url: "https://github.com/googlefonts/noto-emoji",
     type: "SIL OFL 1.1",
     text: NOTO_OFL,
+  },
+  {
+    name: "Material Symbols",
+    url: "https://github.com/google/material-design-icons",
+    type: "Apache-2.0",
+    text: MATERIAL_SYMBOLS_NOTICE,
   },
 ];

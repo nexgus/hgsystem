@@ -88,7 +88,7 @@ bash clear.sh
 
 - **Go 依賴** (直接 + 間接): [`scripts/gen-licenses.sh`](scripts/gen-licenses.sh) 掃描 `hgsystem` 與 `hgupgrade` 兩執行檔於 darwin + windows 編譯進 binary 的 module, 依 `hgsys/go.mod` 之 require 分直接 / 間接, 偵測授權後產出 [`frontend/src/licenses-go.ts`](frontend/src/licenses-go.ts) (需 `go` 與 `jq`).
 - **前端 npm 依賴**: 由 Vite + `rollup-plugin-license` 於建置時取「實際打包進 `dist`」的套件 (經 tree-shaking, 不含僅建置期用的 TypeScript / Vue 編譯器 / Babel / postcss 等), 依 `frontend/package.json` 之 dependencies 分直接 / 間接, 產出 [`frontend/src/licenses-frontend.ts`](frontend/src/licenses-frontend.ts).
-- **應用圖示** (Noto Emoji): 非 Go / npm 套件, 無清單可掃, 手動維護於 [`frontend/src/licenses.ts`](frontend/src/licenses.ts).
+- **應用圖示** (Noto Emoji) 與 **Windows 主選單圖示** (Material Symbols): 非 Go / npm 套件, 無清單可掃, 手動維護於 [`frontend/src/licenses.ts`](frontend/src/licenses.ts). 選單圖示的 Apache-2.0 全文已隨同為 Apache-2.0 的 Go 依賴顯示, 故僅作來源標示.
 
 三個 `licenses*.ts` 皆入版控. 凡依賴變動 (`hgsys/go.mod` 或 `frontend/package.json`), 以 **`bash build.sh --license`** 於建置時一併重產上述兩個自動清單, 使授權揭露與實際散布之程式碼一致; 不加 `--license` 的 `build.sh` 沿用既有清單、不重新掃描. (亦可單獨跑 `bash scripts/gen-licenses.sh` 只更新 Go 部分.)
 
