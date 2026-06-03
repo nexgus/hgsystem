@@ -44,7 +44,7 @@ for arg in "$@"; do
         --license) GEN_LICENSE=1 ;;
         *)
             echo "Error: unknown argument: $arg" >&2
-            echo "用法: bash build.sh [--license]" >&2
+            echo "usage: bash build.sh [--license]" >&2
             exit 1
             ;;
     esac

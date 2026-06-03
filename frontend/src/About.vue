@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Browser } from "@wailsio/runtime";
 import { SystemService } from "../bindings/hgsys/pkg/app";
 import type { AboutInfo } from "../bindings/hgsys/pkg/app/models";
-import { THIRD_PARTY_LICENSES } from "./licenses";
+import { MANUAL_LICENSES } from "./licenses-manual";
 import type { ThirdPartyLicense } from "./licenses";
 import { GO_DIRECT_LICENSES, GO_TRANSITIVE_LICENSES } from "./licenses-go";
 import { FRONTEND_DIRECT_LICENSES, FRONTEND_TRANSITIVE_LICENSES } from "./licenses-frontend";
@@ -116,8 +116,9 @@ interface LicenseBlock {
 // reflow 將為固定欄寬而硬換行的條文重排為段落, 使其於視窗寬度內自然換行而
 // 不致鋸齒 (硬換行 + 二次自動折行的疊加). 規則: 空行維持段落分隔; 以項目
 // 符號 (* - •) 或編號項 ((a) / 1. 等) 起首的行另起一行; 其餘單一硬換行視為
-// 同段續行, 併為空白. licenses-go.ts 取自各 LICENSE 原檔多含 80 欄硬換行,
-// 需經此處理; licenses.ts 為已手動排版的文字, 不套用以免破壞既有結構.
+// 同段續行, 併為空白. licenses-go.ts / licenses-frontend.ts 取自各 LICENSE 原檔多含
+// 80 欄硬換行, 故套用此處理; licenses-manual.ts 已由產生器 (licgen) 以相同規則攤平,
+// 不再於此重排 (reflowBody=false).
 function reflow(text: string): string {
   const out: string[] = [];
   for (const raw of text.split("\n")) {
@@ -136,9 +137,11 @@ function reflow(text: string): string {
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-// buildLicenseBlocks 依授權種類彙整: 同種授權的條文僅取一份代表全文, 但收集
-// 所有元件的著作權聲明與 NOTICE. reflowBody 為 true 時 (Go 依賴取自原始
-// LICENSE 檔) 對條文與 NOTICE 套用 reflow.
+// buildLicenseBlocks 依授權種類彙整: 同種授權的條文僅取「首次出現」者為代表全文,
+// 但收集所有元件的著作權聲明與 NOTICE. 故呼叫端須將自動掃描的 Go / npm 依賴排在
+// 手動素材之前, 使代表全文為其原始 LICENSE 全文 (手動素材的 embed=false 項僅含著作
+// 權聲明, 不應成為代表). reflowBody 為 true 時 (取自原始 LICENSE 檔) 對條文與
+// NOTICE 套用 reflow.
 function buildLicenseBlocks(items: { comp: ThirdPartyLicense; reflowBody: boolean }[]): LicenseBlock[] {
   const map = new Map<string, LicenseBlock>();
   const order: LicenseBlock[] = [];
@@ -169,24 +172,27 @@ function blockText(b: LicenseBlock): string {
   return parts.join("\n\n");
 }
 
+// 次序重要: 自動掃描的 Go / npm 依賴在前, 手動素材在後, 使各授權的代表全文取自
+// 原始 LICENSE; 手動素材中 embed=false 者僅補上著作權聲明 (其全文已由前面同種授權
+// 的元件提供), 不會覆蓋代表全文.
 const licenseBlocks = buildLicenseBlocks([
-  ...THIRD_PARTY_LICENSES.map((comp) => ({ comp, reflowBody: false })),
   ...FRONTEND_DIRECT_LICENSES.map((comp) => ({ comp, reflowBody: true })),
   ...FRONTEND_TRANSITIVE_LICENSES.map((comp) => ({ comp, reflowBody: true })),
   ...GO_DIRECT_LICENSES.map((comp) => ({ comp, reflowBody: true })),
   ...GO_TRANSITIVE_LICENSES.map((comp) => ({ comp, reflowBody: true })),
+  ...MANUAL_LICENSES.map((comp) => ({ comp, reflowBody: false })),
 ]);
 
 // 兩個表格逐元件列出; 授權種類連結指向去重後的對應條文區塊. 直接引用表合併
-// 圖示 (licenses.ts)、前端 npm 直接依賴 (licenses-frontend.ts) 與 Go 直接依賴
-// (licenses-go.ts); 間接引用表合併前端與 Go 的間接依賴.
+// 手動素材 (licenses-manual.ts)、前端 npm 直接依賴 (licenses-frontend.ts) 與 Go
+// 直接依賴 (licenses-go.ts); 間接引用表合併前端與 Go 的間接依賴.
 function toRows(comps: ThirdPartyLicense[]) {
   return comps.map((c) => ({ name: c.name, url: c.url, type: c.type, anchor: licAnchor(c.type) }));
 }
 const tables = [
   {
     title: "直接引用",
-    rows: toRows([...THIRD_PARTY_LICENSES, ...FRONTEND_DIRECT_LICENSES, ...GO_DIRECT_LICENSES]),
+    rows: toRows([...MANUAL_LICENSES, ...FRONTEND_DIRECT_LICENSES, ...GO_DIRECT_LICENSES]),
   },
   {
     title: "間接引用 (transitive)",

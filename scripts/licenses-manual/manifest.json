@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Noto Emoji",
+    "note": "應用程式圖示 (眼鏡 U+1F453)",
+    "url": "https://github.com/googlefonts/noto-emoji",
+    "type": "SIL OFL 1.1",
+    "copyright": "Copyright 2013 Google LLC",
+    "licenseUrl": "https://raw.githubusercontent.com/googlefonts/noto-emoji/254596e5f8a7991229f4b8292eb3b7fa41662446/LICENSE"
+  },
+  {
+    "name": "Material Symbols",
+    "note": "Windows 主選單圖示",
+    "url": "https://github.com/google/material-design-icons",
+    "type": "Apache-2.0",
+    "copyright": "Copyright Google LLC",
+    "licenseUrl": "https://raw.githubusercontent.com/google/material-design-icons/68e015dbbb6b730b5fe4934e8507cd5a465c8a3d/LICENSE"
+  }
+]

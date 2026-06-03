@@ -17,10 +17,18 @@ covers only what isn't obvious from the code.
 - `frontend/` — Vue 3 + TS. `src/App.vue` orchestrates the customer/worksheet
   edit-mode interlock; `src/About.vue` is the About window (info + third-party
   license tab). `bindings/` (generated) and `dist/` (built) aren't committed, but
-  the generated license lists `src/licenses-go.ts` / `src/licenses-frontend.ts`
-  are committed (regenerated only by `build.sh --license`; see README §5).
+  the generated license lists `src/licenses-go.ts` / `src/licenses-frontend.ts` /
+  `src/licenses-manual.ts` are committed (regenerated only by `build.sh --license`;
+  see README §5). `src/licenses.ts` is hand-kept but holds only the shared
+  `ThirdPartyLicense` type — the manual asset data lives in
+  `scripts/licenses-manual/manifest.json`.
 - `scripts/` — dev-only tooling, not shipped. `gen-licenses.sh` + the standalone
-  `licgen/` module (own `go.mod`) regenerate the Go third-party license list.
+  `licgen/` module (own `go.mod`) regenerate the Go license list (`licenses-go.ts`)
+  and, from `licenses-manual/manifest.json`, the manual-asset list
+  (`licenses-manual.ts`). `licgen -manual` auto-decides per entry: if its `type`
+  already appears in the generated Go/npm lists it emits copyright-only (the body
+  is shared); otherwise it fetches the entry's `licenseUrl` and embeds the text —
+  so `--license` needs network.
 - `deprecated/` — old PySide6 code, reference only; **do not add features here**.
 
 ## Invariants (migrate data before changing)
@@ -55,6 +63,8 @@ covers only what isn't obvious from the code.
 
 - Edit-mode interlock lives entirely in `frontend/src/App.vue`; Go services are
   stateless beyond the Mongo connection.
-- Third-party license disclosure (three sources: icon manual in `licenses.ts`,
-  Go + frontend npm auto-scanned via `build.sh --license`): [README.md](README.md) §5.
+- Third-party license disclosure (three generated lists: Go + frontend npm
+  auto-scanned, and manual assets from `scripts/licenses-manual/manifest.json`, all
+  via `build.sh --license`): [README.md](README.md) §5. About.vue dedups license
+  bodies by type but keeps every component's copyright notice.
 - MSI quirks and the post-build `msibuild` workarounds: [README.md](README.md) §6.2–6.3.

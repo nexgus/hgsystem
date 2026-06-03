@@ -11,17 +11,31 @@
 // module 於本機 module cache 的目錄, 供讀取 LICENSE / NOTICE 檔.
 // direct.txt 每行一個「直接依賴」的 module path (取自 hgsys/go.mod 之 require
 // 中非 indirect 者); 出現於其中者歸入 GO_DIRECT_LICENSES, 其餘歸間接.
+//
+// 手動素材模式 (圖示等「既非 Go module、也非 npm 套件」者):
+//
+//	go run . -manual <manifest.json> [<已產生的授權清單.ts> ...]
+//
+// 讀取手動維護的素材清單, 輸出 frontend/src/licenses-manual.ts 的 MANUAL_LICENSES
+// 陣列. 是否嵌入授權全文「自動」依該授權種類是否已見於傳入的自動清單 (licenses-go.ts
+// / licenses-frontend.ts) 決定: 已見者僅放 copyright (其全文由該同種授權的元件提供),
+// 未見者抓 licenseUrl 的原文攤平後嵌入 (使散布物含全文). 因此 manifest 每筆都須同時
+// 備妥 copyright 與 licenseUrl. About.vue 依授權種類去重顯示. 格式見
+// scripts/licenses-manual/.
 package main
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/licensecheck"
 )
@@ -124,28 +138,42 @@ func readLines(path string) map[string]bool {
 
 // emit 將一組 entry 輸出為具名的 ThirdPartyLicense 陣列.
 func emit(b *strings.Builder, name string, es []entry) {
-	b.WriteString("export const " + name + ": ThirdPartyLicense[] = [\n")
+	fmt.Fprintf(b, "export const %s: ThirdPartyLicense[] = [\n", name)
 	for _, e := range es {
 		b.WriteString("  {\n")
-		b.WriteString("    name: " + jsonStr(e.name) + ",\n")
-		b.WriteString("    url: " + jsonStr(e.url) + ",\n")
-		b.WriteString("    type: " + jsonStr(e.typ) + ",\n")
-		b.WriteString("    text: " + jsonStr(e.text) + ",\n")
+		fmt.Fprintf(b, "    name: %s,\n", jsonStr(e.name))
+		fmt.Fprintf(b, "    url: %s,\n", jsonStr(e.url))
+		fmt.Fprintf(b, "    type: %s,\n", jsonStr(e.typ))
+		fmt.Fprintf(b, "    text: %s,\n", jsonStr(e.text))
 		b.WriteString("  },\n")
 	}
 	b.WriteString("];\n")
 }
 
 func main() {
+	if len(os.Args) >= 2 && os.Args[1] == "-manual" {
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: go run . -manual <manifest.json> [<license-list.ts> ...]")
+			os.Exit(2)
+		}
+		runManual(os.Args[2], os.Args[3:])
+		return
+	}
 	if len(os.Args) < 3 {
-		fmt.Fprintln(os.Stderr, "用法: go run . <modules.tsv> <direct.txt>")
+		fmt.Fprintln(os.Stderr, "usage: go run . <modules.tsv> <direct.txt>")
 		os.Exit(2)
 	}
-	data, err := os.ReadFile(os.Args[1])
+	runGo(os.Args[1], os.Args[2])
+}
+
+// runGo 掃描 Go module 清單 (modulesPath) 與直接依賴清單 (directPath), 輸出
+// licenses-go.ts 的兩個陣列.
+func runGo(modulesPath, directPath string) {
+	data, err := os.ReadFile(modulesPath)
 	if err != nil {
 		panic(err)
 	}
-	direct := readLines(os.Args[2])
+	direct := readLines(directPath)
 
 	var entries []entry
 	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
@@ -206,8 +234,8 @@ func main() {
 // 內容為 hgsystem 散布物 (hgsystem 執行檔, 及其內嵌的 hgupgrade 自我更新
 // 輔助程式) 於 darwin 與 windows 平台實際編譯進 binary 的 Go 依賴及其授權,
 // 依 hgsys/go.mod 分為直接 (GO_DIRECT_LICENSES) 與間接 (GO_TRANSITIVE_LICENSES)
-// 兩類. 前端依賴 (Vue / @wailsio/runtime) 與應用圖示非 Go module, 列於
-// licenses.ts.
+// 兩類. 前端依賴 (Vue / @wailsio/runtime) 列於 licenses-frontend.ts; 圖示等
+// 「既非 Go module、也非 npm 套件」的手動素材列於 licenses-manual.ts.
 //
 // 產生方式: 以 go list -deps 取得 darwin + windows 兩平台的相依 module 聯集,
 // 以 go.mod 的 require (非 indirect) 判定直接依賴, 再以 google/licensecheck
@@ -222,4 +250,170 @@ import type { ThirdPartyLicense } from "./licenses";
 	b.WriteString("\n// GO_TRANSITIVE_LICENSES 為間接 (transitive) 依賴, 依路徑 (不分大小寫) 排序.\n")
 	emit(&b, "GO_TRANSITIVE_LICENSES", trans)
 	fmt.Print(b.String())
+}
+
+// manualSpec 為 scripts/licenses-manual/manifest.json 中單筆素材的描述. 各欄皆必填
+// (note 除外): 是否嵌入授權全文由產生器依該 Type 是否已見於自動清單自動決定, 故
+// Copyright 與 LicenseURL 兩者都要備妥 —— 實際用到哪個視引用的其他開源而定.
+type manualSpec struct {
+	Name       string `json:"name"`
+	Note       string `json:"note"`       // 選填; 僅作產生檔內註解, 不顯示於 UI
+	URL        string `json:"url"`        // 素材首頁 / 原始碼倉庫
+	Type       string `json:"type"`       // 授權種類 (SPDX 風格, 須與 licensecheck 一致, 如 "Apache-2.0")
+	Copyright  string `json:"copyright"`  // 著作權聲明 (該 Type 已見於自動清單時用此)
+	LicenseURL string `json:"licenseUrl"` // 授權原文的 raw URL (該 Type 未見於自動清單時抓此嵌入)
+}
+
+// typeLineRe 自已產生的授權清單 TS 取出各條目的 type 值.
+var typeLineRe = regexp.MustCompile(`(?m)^\s*type:\s*"([^"]*)"`)
+
+// copyrightLineRe 比對著作權聲明的起首行 (大小寫敏感, 與 About.vue 的
+// extractCopyrights 一致).
+var copyrightLineRe = regexp.MustCompile(`(?m)^Copyright\b`)
+
+// runManual 讀取手動素材 manifest, 產生 licenses-manual.ts 的 MANUAL_LICENSES.
+//
+// presentListPaths 為已產生的授權清單 (licenses-go.ts / licenses-frontend.ts);
+// 自其取出已涵蓋的授權種類. 每筆素材: 其 Type 已見於該集合者, text 僅為著作權聲明
+// (Copyright) —— 全文由該同種授權的元件提供, About.vue 依授權種類去重故不重複嵌入;
+// 未見者則抓 LicenseURL 原文 (攤平後) 作為 text, 使散布物自身含授權全文.
+func runManual(manifestPath string, presentListPaths []string) {
+	present := map[string]bool{}
+	for _, p := range presentListPaths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: skipping license list %s (read failed): %v\n", p, err)
+			continue
+		}
+		for _, m := range typeLineRe.FindAllStringSubmatch(string(data), -1) {
+			present[m[1]] = true
+		}
+	}
+
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		panic(err)
+	}
+	var specs []manualSpec
+	if err := json.Unmarshal(data, &specs); err != nil {
+		panic(fmt.Errorf("parse %s: %w", manifestPath, err))
+	}
+
+	var b strings.Builder
+	b.WriteString(`// 本檔為自動產生, 請勿手動編輯. 重新產生: bash scripts/gen-licenses.sh
+//
+// 內容為 hgsystem 散布物中「既非 Go module、也非 npm 套件」的第三方素材 (圖示等)
+// 及其授權, 來源為 scripts/licenses-manual/manifest.json. 其中 embed=true 者於
+// 產生時抓取授權原文嵌入 (使散布物自身含授權全文); embed=false 者僅含著作權聲明,
+// 其授權全文由同視窗中其他同種授權的元件 (如 Apache-2.0 的 Go 依賴) 提供 ——
+// About.vue 依授權種類去重顯示, 故毋須重複嵌入.
+
+import type { ThirdPartyLicense } from "./licenses";
+
+// MANUAL_LICENSES 為手動維護的素材授權清單.
+export const MANUAL_LICENSES: ThirdPartyLicense[] = [
+`)
+	for _, s := range specs {
+		if s.Copyright == "" || s.LicenseURL == "" {
+			fmt.Fprintf(os.Stderr, "ERROR: entry %q must provide both copyright and licenseUrl\n", s.Name)
+			os.Exit(1)
+		}
+		var text string
+		if present[s.Type] {
+			// 該授權全文已由其他同種授權的元件提供, 僅放著作權聲明.
+			text = s.Copyright
+			fmt.Fprintf(os.Stderr, "  %s [%s]: reusing existing license text; emitting copyright only\n", s.Name, s.Type)
+		} else {
+			// 該授權不在自動清單中, 抓原文嵌入, 使散布物自身含全文.
+			body, err := fetchText(s.LicenseURL)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: failed to fetch license for %q (%s): %v\n", s.Name, s.LicenseURL, err)
+				os.Exit(1)
+			}
+			text = reflow(body)
+			if !copyrightLineRe.MatchString(text) {
+				fmt.Fprintf(os.Stderr, "WARN: fetched license for %q has no leading Copyright line\n", s.Name)
+			}
+			fmt.Fprintf(os.Stderr, "  %s [%s]: embedding fetched license text\n", s.Name, s.Type)
+		}
+		if s.Note != "" {
+			fmt.Fprintf(&b, "  // %s\n", s.Note)
+		}
+		b.WriteString("  {\n")
+		fmt.Fprintf(&b, "    name: %s,\n", jsonStr(s.Name))
+		fmt.Fprintf(&b, "    url: %s,\n", jsonStr(s.URL))
+		fmt.Fprintf(&b, "    type: %s,\n", jsonStr(s.Type))
+		fmt.Fprintf(&b, "    text: %s,\n", jsonStr(text))
+		b.WriteString("  },\n")
+	}
+	b.WriteString("];\n")
+	fmt.Print(b.String())
+	fmt.Fprintf(os.Stderr, "manual entries: %d\n", len(specs))
+}
+
+// itemLineRe 比對項目符號 / 編號項的起首行 (與 About.vue 的 reflow 一致).
+var itemLineRe = regexp.MustCompile(`^([*\-•]\s|\d+[.)]\s|\([0-9a-zA-Z]+\)\s)`)
+
+// isHeaderLine 判斷一行是否為章節標題 (如 OFL 的 PREAMBLE / DEFINITIONS): 全大寫、
+// 不含小寫字母、且夠短. 用於攤平時保留標題獨立成行 (避免併入後續段落).
+func isHeaderLine(s string) bool {
+	if len(s) == 0 || len(s) > 30 {
+		return false
+	}
+	hasUpper := false
+	for _, r := range s {
+		if r >= 'a' && r <= 'z' {
+			return false
+		}
+		if r >= 'A' && r <= 'Z' {
+			hasUpper = true
+		}
+	}
+	return hasUpper
+}
+
+// reflow 將為固定欄寬而硬換行的授權原文攤平為段落, 與 About.vue 的 reflow 同規則:
+// 空行維持段落分隔; 項目符號 / 編號項與章節標題另起一行; 其餘單一硬換行視為同段續
+// 行併為空白. embed=true 的素材於產生時即攤平 (存為已排版文字, About.vue 不再 reflow),
+// 一併避免後續以行首 "Copyright" 偵測著作權聲明時, 誤刪內文中因換行而行首為
+// "Copyright Holder" 的續行.
+func reflow(text string) string {
+	var out []string
+	prevHeader := false
+	for _, raw := range strings.Split(text, "\n") {
+		if strings.TrimSpace(raw) == "" {
+			out = append(out, "")
+			prevHeader = false
+			continue
+		}
+		t := strings.TrimSpace(raw)
+		header := isHeaderLine(t)
+		if len(out) == 0 || out[len(out)-1] == "" || itemLineRe.MatchString(t) || header || prevHeader {
+			out = append(out, t)
+		} else {
+			out[len(out)-1] += " " + t
+		}
+		prevHeader = header
+	}
+	joined := regexp.MustCompile(`\n{3,}`).ReplaceAllString(strings.Join(out, "\n"), "\n\n")
+	return strings.TrimSpace(joined)
+}
+
+// fetchText 以 HTTP GET 取得 url 的純文字內容 (授權原文). 須為 raw 文字 URL,
+// 非 HTML 頁面.
+func fetchText(url string) (string, error) {
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(body), nil
 }

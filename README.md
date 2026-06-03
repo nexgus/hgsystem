@@ -84,13 +84,13 @@ bash clear.sh
 
 修改 Vue 前端 (`frontend/src/`) 時, 由於 `//go:embed all:dist` 於編譯期固化前端產出, 純前端變更亦須重跑 `build.sh` (或至少 `npm run build` + 將 `frontend/dist` 重新複製至 `hgsys/cmd/hgsystem/dist`), 才能於下次 `go build` 時生效.
 
-「關於」視窗的「第三方授權」分頁顯示散布物所引用之第三方開源元件授權, 分「直接引用」與「間接引用」兩表. 授權清單來自三個來源, 其中兩個為自動產生:
+「關於」視窗的「第三方授權」分頁顯示散布物所引用之第三方開源元件授權, 分「直接引用」與「間接引用」兩表. 授權清單來自三個來源, 皆為自動產生:
 
 - **Go 依賴** (直接 + 間接): [`scripts/gen-licenses.sh`](scripts/gen-licenses.sh) 掃描 `hgsystem` 與 `hgupgrade` 兩執行檔於 darwin + windows 編譯進 binary 的 module, 依 `hgsys/go.mod` 之 require 分直接 / 間接, 偵測授權後產出 [`frontend/src/licenses-go.ts`](frontend/src/licenses-go.ts) (需 `go` 與 `jq`).
 - **前端 npm 依賴**: 由 Vite + `rollup-plugin-license` 於建置時取「實際打包進 `dist`」的套件 (經 tree-shaking, 不含僅建置期用的 TypeScript / Vue 編譯器 / Babel / postcss 等), 依 `frontend/package.json` 之 dependencies 分直接 / 間接, 產出 [`frontend/src/licenses-frontend.ts`](frontend/src/licenses-frontend.ts).
-- **應用圖示** (Noto Emoji) 與 **Windows 主選單圖示** (Material Symbols): 非 Go / npm 套件, 無清單可掃, 手動維護於 [`frontend/src/licenses.ts`](frontend/src/licenses.ts). 選單圖示的 Apache-2.0 全文已隨同為 Apache-2.0 的 Go 依賴顯示, 故僅作來源標示.
+- **手動素材** (圖示等「既非 Go module、也非 npm 套件」者, 如 Noto Emoji 應用圖示、Material Symbols 選單圖示): 描述於 [`scripts/licenses-manual/manifest.json`](scripts/licenses-manual/manifest.json) (每筆含 `type` / `copyright` / `licenseUrl`), 由 [`scripts/gen-licenses.sh`](scripts/gen-licenses.sh) 產出 [`frontend/src/licenses-manual.ts`](frontend/src/licenses-manual.ts). 是否嵌入授權全文由產生器**自動**判斷: 該 `type` 已見於上述 Go / npm 自動清單者僅放著作權 (全文沿用該元件, 例: Material Symbols 的 Apache-2.0 已隨 Go 依賴顯示), 未見者則抓 `licenseUrl` 原文嵌入 (例: Noto 的 SIL OFL 1.1)。欄位與用法見 [`scripts/licenses-manual/README.md`](scripts/licenses-manual/README.md).
 
-三個 `licenses*.ts` 皆入版控. 凡依賴變動 (`hgsys/go.mod` 或 `frontend/package.json`), 以 **`bash build.sh --license`** 於建置時一併重產上述兩個自動清單, 使授權揭露與實際散布之程式碼一致; 不加 `--license` 的 `build.sh` 沿用既有清單、不重新掃描. (亦可單獨跑 `bash scripts/gen-licenses.sh` 只更新 Go 部分.)
+三份 `licenses-*.ts` 皆入版控 (`licenses.ts` 僅存共用型別 `ThirdPartyLicense`). 凡依賴或素材變動 (`hgsys/go.mod`、`frontend/package.json` 或 `scripts/licenses-manual/manifest.json`), 以 **`bash build.sh --license`** 於建置時一併重產上述三份自動清單, 使授權揭露與實際散布一致; 不加 `--license` 的 `build.sh` 沿用既有清單、不重新掃描. (亦可單獨跑 `bash scripts/gen-licenses.sh` 重產 Go 與手動素材兩份; 手動素材 `embed:true` 的抓取需網路.) 顯示時依授權種類去重 (同種授權只列一次條文), 但保留各元件著作權聲明.
 
 domain 行為涉及與 MongoDB 中既有資料及 `mongodump` 備份檔之相容性, 變更時須留意以下不變式:
 

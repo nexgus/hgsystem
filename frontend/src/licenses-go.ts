@@ -3,8 +3,8 @@
 // 內容為 hgsystem 散布物 (hgsystem 執行檔, 及其內嵌的 hgupgrade 自我更新
 // 輔助程式) 於 darwin 與 windows 平台實際編譯進 binary 的 Go 依賴及其授權,
 // 依 hgsys/go.mod 分為直接 (GO_DIRECT_LICENSES) 與間接 (GO_TRANSITIVE_LICENSES)
-// 兩類. 前端依賴 (Vue / @wailsio/runtime) 與應用圖示非 Go module, 列於
-// licenses.ts.
+// 兩類. 前端依賴 (Vue / @wailsio/runtime) 列於 licenses-frontend.ts; 圖示等
+// 「既非 Go module、也非 npm 套件」的手動素材列於 licenses-manual.ts.
 //
 // 產生方式: 以 go list -deps 取得 darwin + windows 兩平台的相依 module 聯集,
 // 以 go.mod 的 require (非 indirect) 判定直接依賴, 再以 google/licensecheck
