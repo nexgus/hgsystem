@@ -14,6 +14,9 @@ __pycache__/
 # Windows icon resource (regenerated from icon.ico by build.sh before go build)
 /hgsys/cmd/hgsystem/rsrc_windows_amd64.syso
 
+# hgupgrade binaries embedded into hgsystem (built by build.sh before bindings/go build)
+/hgsys/cmd/hgsystem/hgupgrade/
+
 # Frontend build outputs
 /frontend/node_modules/
 /frontend/dist/

@@ -4,6 +4,7 @@
 #
 # 移除清單對齊 .gitignore 中的 build artifact 條目:
 #   * bin/                          — Go binaries + MSI + symlink
+#   * hgsys/cmd/hgsystem/hgupgrade/ — embed 用的 hgupgrade binary (兩平台)
 #   * hgsys/cmd/hgsystem/dist/      — embed 用的 frontend dist 副本 (保留 .gitkeep)
 #   * frontend/dist/                — Vite 輸出
 #   * frontend/bindings/            — wails3 generate bindings 產出的 TS
@@ -18,6 +19,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 TARGETS=(
     bin
+    hgsys/cmd/hgsystem/hgupgrade
     frontend/dist
     frontend/bindings
     frontend/node_modules

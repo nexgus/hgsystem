@@ -19,6 +19,7 @@ import SearchDialog from "./components/SearchDialog.vue";
 import BackupRestoreDialog from "./components/BackupRestoreDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import TitleManageDialog from "./components/TitleManageDialog.vue";
+import UpdateDialog from "./components/UpdateDialog.vue";
 
 // ---- customer 狀態 ---------------------------------------------------------
 const currentCustomer = ref<Customer | null>(null);
@@ -43,6 +44,7 @@ async function refreshTitles() {
 // ---- dialog 狀態 -----------------------------------------------------------
 const showSearch = ref(false);
 const showTitleManage = ref(false);
+const showUpdate = ref(false);
 const backupState = ref<{ savepath: string; mode: "backup" | "restore" } | null>(null);
 const info = ref<{
   title: string;
@@ -132,6 +134,8 @@ onMounted(async () => {
   // 目錄挑選與對話框流程.
   Events.On("menu:backup", () => { onMenuBackup(); });
   Events.On("menu:restore", () => { onMenuRestore(); });
+  // 原生選單「檢查更新…」: 開啟更新對話框, 由其自行查詢 / 確認 / 下載.
+  Events.On("menu:update", () => { showUpdate.value = true; });
 
   await refreshTotal();
   await refreshTitles();
@@ -427,6 +431,10 @@ const historyFrozen = computed(() =>
       :savepath="backupState.savepath"
       :mode="backupState.mode"
       @close="backupState = null"
+    />
+    <UpdateDialog
+      v-if="showUpdate"
+      @close="showUpdate = false"
     />
     <InfoDialog
       v-if="info"

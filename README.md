@@ -31,8 +31,9 @@ bash build.sh
 1. 偵測 mingw, 缺少時透過 Homebrew 安裝.
 1. 偵測 wixl (msitools), 缺少時透過 Homebrew 安裝.
 1. `go mod download` 同步 Go 依賴.
+1. 編譯隨附的更新程式 hgupgrade (darwin/arm64 與 windows/amd64, `CGO_ENABLED=0`; windows 版以 `-H windowsgui` 避免顯示錯誤對話框時閃出 console), 輸出至 `hgsys/cmd/hgsystem/hgupgrade/` (不入版控), 供 hgsystem 以 `//go:embed` 內嵌. 此步須早於產生 bindings 與 `go build`: `cmd/hgsystem` 對該目錄之檔有 embed 宣告, 缺檔會導致型別檢查與編譯失敗. hgupgrade 之行為詳見第 7 節.
 1. 產出前端:
-   - 由 `hgsys/` 內呼叫 `wails3 generate bindings -ts ./cmd/hgsystem`, 由 Go service (`pkg/app` 下之 `CustomerService`, `WorksheetService`, `SearchService`, `TitleService`, `BackupService`, `SystemService`) 反推產生 `frontend/bindings/` 之 TypeScript 綁定. 此命令須於含 `go.mod` 之目錄執行, 並指定 `./cmd/hgsystem` 為 pattern, 使 static analyser 找得到 `application.NewService(...)` 之呼叫.
+   - 由 `hgsys/` 內呼叫 `wails3 generate bindings -ts ./cmd/hgsystem`, 由 Go service (`pkg/app` 下之 `CustomerService`, `WorksheetService`, `SearchService`, `TitleService`, `BackupService`, `SystemService`, `UpdateService`) 反推產生 `frontend/bindings/` 之 TypeScript 綁定. 此命令須於含 `go.mod` 之目錄執行, 並指定 `./cmd/hgsystem` 為 pattern, 使 static analyser 找得到 `application.NewService(...)` 之呼叫.
    - 於 `frontend/` 執行 `npm run build`, 經 vue-tsc 型別檢查後由 Vite 輸出 `frontend/dist/`.
    - 將 `frontend/dist/` 複製為 `hgsys/cmd/hgsystem/dist/`, 供 `//go:embed all:dist` 內嵌進執行檔. Go 之 embed 不允許 `..` 跨層, 故必須以複製而非符號連結方式置入.
 1. 由 `hgsys/cmd/hgsystem/icon.ico` (眼鏡圖示, 取自 Noto Emoji U+1F453, Apache-2.0 授權) 以 `rsrc` 產生 `rsrc_windows_amd64.syso` (不入版控). `go build` 偵測到此檔即自動連結, 使 windows/amd64 執行檔帶有應用程式圖示 (檔案總管 / 工作列). 同一張圖示之 `icon.png` 另由 `//go:embed` 內嵌, 經 `application.Options.Icon` 供 Wails 視窗使用.
@@ -65,7 +66,7 @@ bin/hgsystem-<版本>.msi
 - Windows: `%LOCALAPPDATA%\hgsystem\logs\YYMMDD_NNNN.log`
 - 其餘平台: `$XDG_STATE_HOME/hgsystem/logs/` (或 `~/.local/state/hgsystem/logs/`).
 
-主畫面之選單分為"系統"(有關 / 離開) 與"資料"(備份 / 還原) 兩列. 備份與還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框.
+原生選單依平台慣例組織 (詳見 [`hgsys/cmd/hgsystem/menu.go`](hgsys/cmd/hgsystem/menu.go)): macOS 為 應用程式 / 資料 / 編輯 / 顯示 / 視窗, Windows 為 檔案 / 資料 / 編輯 / 顯示 / 說明. 「關於」與「檢查更新…」於 macOS 置於應用程式選單, 於 Windows 置於說明選單. 「資料」選單之備份 / 還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框; 「檢查更新…」之行為詳見第 7 節.
 
 ## 4. 清除產物
 
@@ -149,3 +150,16 @@ wixl (msitools 0.106) 對 `<Environment>` 元素之 `Permanent="no"` 並未發�
 Windows Installer 以 `IsValidCodePage` 驗證資料庫字串池與 `_SummaryInformation` stream 的 codepage, 而 UTF-8 (`65001`) 並非系統安裝之 code page (`IsValidCodePage` 回傳 false), 驗證不過時 `msiexec` 會直接拒絕開啟封裝, 顯示不是正常的 Windows installer 封裝而完全無法安裝. 因此 `Product@Name` 與 `Package@Description` 一律使用 ASCII, 不設 `SummaryCodepage`, 由 wixl 以預設 cp1252 (Summary) 與 neutral (資料庫字串池) 寫入; 內容皆 ASCII 故不會亂碼亦可正常安裝. 此設定與同一工具鏈產出, 經實機驗證可安裝之 wova MSI 一致.
 
 > 註: 早期版本曾將兩處 codepage 後處理為 `65001` 以顯示中文 ProductName / description, 但 `65001` 無法通過 Windows 的 `IsValidCodePage` 驗證, 導致 MSI 在 Windows 端無法開啟. 若日後需於 metadata 顯示繁體中文, 須改用 cp950 (Big5) 等系統實際安裝之 code page, 而非 UTF-8.
+
+## 7. 軟體更新
+
+主選單「檢查更新…」(macOS 於應用程式選單「關於」下方, Windows 於說明選單) 會連線至 GitHub 之 `nexgus/hgsystem` 儲存庫, 列出所有 release, 略過 draft 與 prerelease, 以語意化版本 (`golang.org/x/mod/semver`) 挑出最大正式版並與當前版本比較. 線上 tag 同時存在帶與不帶 `v` 前綴兩種寫法 (如 `v0.1.1` 與 `0.7.0`), 比較前一律正規化. 版本號定義於 [`hgsys/pkg/version/version.go`](hgsys/pkg/version/version.go).
+
+發現新版且存在對應本平台之 asset 時, 詢問使用者是否更新. 確認後由 hgsystem 自身下載對應 asset (邊下載邊以 `update:progress` event 於前端顯示進度條), 驗證大小後將內嵌的 hgupgrade 釋出至暫存目錄並啟動之, 隨即關閉自己. 後續換版由 hgupgrade 進行 (hgsystem 執行中無法替換自身):
+
+- **macOS**: 下載 `hgsystem-<版本>-darwin-arm64` 至執行檔同目錄, 設定執行權限後以「先建暫存 symlink 再 `rename`」之原子方式, 將指向版本檔之 symlink 換成指向新版; 保留舊版本檔. 以程式下載不會被加上 `com.apple.quarantine`, 且 `go build` 對 arm64 之 ad-hoc 簽章隨位元組保留, 故無 Gatekeeper 阻擋.
+- **Windows**: 下載 `hgsystem-<版本>.msi` 至暫存目錄, 以 `msiexec /i ... /qb!` 安裝 (MajorUpgrade 自動替換舊版). 因屬 per-machine 安裝, 會觸發一次 UAC 提權; 安裝中斷時 Windows Installer 一般會自動回滾為舊版.
+
+hgupgrade 先等待原 hgsystem 行程結束 (上限 30 秒, 逾時即中止) 再換版, 完成後重新啟動. 任何換版 / 安裝前的失敗皆不動既有安裝, 改以原生對話框 (macOS `osascript`, Windows `MessageBox`) 告知使用者, 待其按確認後重啟仍可用的原版本.
+
+hgupgrade 以 `//go:embed` 內嵌於 hgsystem (見第 2 節之編譯步驟), 更新時才釋出至暫存目錄執行, 因此不留在安裝目錄, 也不會在 Windows 上因執行中而鎖住安裝目錄.

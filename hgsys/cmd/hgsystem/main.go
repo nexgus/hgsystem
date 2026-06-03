@@ -90,6 +90,9 @@ func main() {
 	// BackupService 需要 *App 來發送事件; 在 New 之後再注入.
 	backupSvc := app.NewBackupService(nil, client)
 	systemSvc := app.NewSystemService()
+	// UpdateService 需要 *App (發送進度事件 / 關閉應用程式) 與內嵌的 hgupgrade;
+	// 同樣在 New 之後注入.
+	updateSvc := app.NewUpdateService()
 
 	wailsApp := application.New(application.Options{
 		Name:        "hgsystem",
@@ -102,6 +105,7 @@ func main() {
 			application.NewService(titleSvc),
 			application.NewService(backupSvc),
 			application.NewService(systemSvc),
+			application.NewService(updateSvc),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -113,6 +117,8 @@ func main() {
 
 	// 現在有了 *App, 把它交給需要發送事件的 service.
 	backupSvc.SetApp(wailsApp)
+	updateSvc.SetApp(wailsApp)
+	updateSvc.SetUpgrader(hgupgradeBinary, hgupgradeName)
 
 	// 依平台慣例建立原生應用程式選單 (macOS / Windows 皆然). 參見 menu.go.
 	wailsApp.Menu.SetApplicationMenu(buildAppMenu(wailsApp))

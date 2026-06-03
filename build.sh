@@ -232,6 +232,22 @@ function build_msi {
     rm -f "$sc_idt"
 }
 
+# build_upgrader 為兩個目標平台編譯 hgupgrade, 輸出到 cmd/${BIN}/hgupgrade/,
+# 供 hgsystem 以 //go:embed 內嵌. 須在 wails3 generate bindings 與 go build
+# 之前執行: cmd/${BIN} 內含對這些檔的 embed 宣告, 缺檔會導致型別檢查 / 編譯
+# 失敗. hgupgrade 不需 cgo, 故以 CGO_ENABLED=0 編譯; windows 版用 -H windowsgui
+# 避免顯示錯誤對話框時閃出 console 視窗. 產物不入版控 (見 .gitignore).
+function build_upgrader {
+    echo "Building hgupgrade (darwin/arm64 + windows/amd64) for embedding..."
+    local dst="cmd/${BIN}/hgupgrade"
+    (cd "${PKG}" && mkdir -p "${dst}" && \
+        GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath \
+            -o "${dst}/hgupgrade-darwin-arm64" ./cmd/hgupgrade && \
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-H windowsgui" \
+            -o "${dst}/hgupgrade-windows-amd64.exe" ./cmd/hgupgrade)
+}
+
 # mklink 為兩個目標平台各建一組短 symlink: 無後綴指向 darwin/arm64,
 # .exe 指向 windows/amd64; 並為 MSI 建一個 hgsystem.msi 短符號.
 function mklink {
@@ -250,6 +266,8 @@ ensure_wixl
 # wails3 generate bindings 需要 deps 已下載.
 (cd "${PKG}" && go mod download)
 
+# 先編 hgupgrade 供 hgsystem 內嵌; 須早於 bindings 產生 (型別檢查需要 embed 檔).
+build_upgrader
 build_frontend
 gen_winicon
 

@@ -18,10 +18,12 @@ const aboutWindowName = "about"
 
 // buildAppMenu 依平台慣例組裝應用程式選單.
 //
-// macOS 採 App / 資料 / 編輯 / 顯示 / 視窗 結構, 「關於」置於 App 選單; 第三方
-// 授權於「關於」視窗內以分頁呈現, 依 macOS 慣例 (授權 / 致謝放在 About 視窗)
-// 不另設說明選單. 其他平台 (Windows) 採 檔案 / 資料 / 編輯 / 顯示 / 說明 結構,
-// 「關於」置於說明選單. 選單文案全為繁體中文.
+// macOS 採 App / 資料 / 編輯 / 顯示 / 視窗 結構, 「關於」與「檢查更新…」置於
+// App 選單; 第三方授權於「關於」視窗內以分頁呈現, 依 macOS 慣例 (授權 / 致謝
+// 放在 About 視窗) 不另設說明選單. 其他平台 (Windows) 採 檔案 / 資料 / 編輯 /
+// 顯示 / 說明 結構, 「檢查更新…」與「關於」置於說明選單. 「檢查更新…」以
+// menu:update event 通知前端執行檢查流程 (見 frontend 的 App.vue). 選單文案
+// 全為繁體中文.
 //
 // Arg(s):
 //
@@ -46,6 +48,10 @@ func buildDarwinMenu(app *application.App, menu *application.Menu) {
 	appSub := menu.AddSubmenu(appDisplayName)
 	appSub.Add("關於 " + appDisplayName).OnClick(func(*application.Context) {
 		showAbout(app)
+	})
+	// macOS 慣例: 「檢查更新…」置於 App 選單「關於」下方.
+	appSub.Add("檢查更新…").OnClick(func(*application.Context) {
+		app.Event.Emit("menu:update")
 	})
 	appSub.AddSeparator()
 	appSub.AddRole(application.ServicesMenu)
@@ -87,6 +93,11 @@ func buildDefaultMenu(app *application.App, menu *application.Menu) {
 	addViewMenu(menu)
 
 	helpSub := menu.AddSubmenu("說明")
+	// Windows 慣例: 「檢查更新…」與「關於」同置於「說明」選單.
+	helpSub.Add("檢查更新…").OnClick(func(*application.Context) {
+		app.Event.Emit("menu:update")
+	})
+	helpSub.AddSeparator()
 	helpSub.Add("關於 " + appDisplayName).OnClick(func(*application.Context) {
 		showAbout(app)
 	})

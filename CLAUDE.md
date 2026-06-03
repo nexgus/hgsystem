@@ -10,6 +10,10 @@ covers only what isn't obvious from the code.
 - `hgsys/` — the Go module is named `hgsys`, but everything user-facing (binary,
   Mongo DB, Wails identity, log dir) is `hgsystem`. Entry + `//go:embed all:dist`
   in `cmd/hgsystem/main.go`.
+- `hgsys/cmd/hgupgrade/` — small standalone self-update helper (downloads the new
+  release, swaps the macOS symlink / runs the Windows MSI, relaunches). Embedded
+  into hgsystem via `//go:embed` and extracted to a temp dir at update time; see
+  [README.md](README.md) §7.
 - `frontend/` — Vue 3 + TS. `src/App.vue` orchestrates the customer/worksheet
   edit-mode interlock. `bindings/` (generated) and `dist/` (built) aren't committed.
 - `deprecated/` — old PySide6 code, reference only; **do not add features here**.
@@ -29,12 +33,16 @@ covers only what isn't obvious from the code.
 - The bindings generator only finds services declared in
   `application.Options.Services` as `application.NewService(&Foo{})`; ones added
   later via `app.RegisterService(...)` are missed. Services needing
-  `*application.App` (`BackupService`, `SystemService`) get it via a `SetApp`
-  method called from `main.go`.
+  `*application.App` (`BackupService`, `UpdateService`) get it via a `SetApp`
+  method called from `main.go`; `UpdateService` also receives the embedded
+  `hgupgrade` bytes via `SetUpgrader` there.
 - `wails3 generate bindings` must run from `hgsys/` with `./cmd/hgsystem` as the
   pattern (build.sh already does this).
 - `//go:embed` can't cross `..`, so build.sh copies `frontend/dist/` into
-  `hgsys/cmd/hgsystem/dist/` before `go build`.
+  `hgsys/cmd/hgsystem/dist/` before `go build`. Likewise the per-platform
+  `hgupgrade` binaries under `cmd/hgsystem/hgupgrade/` (selected by build tags)
+  must be built before bindings/`go build` or the embed fails — build.sh's
+  `build_upgrader` runs first.
 
 ## Where to look
 
