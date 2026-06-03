@@ -11,21 +11,17 @@ import (
 // 不適合放入選單, 故另取此短名.
 const appDisplayName = "HGSystem"
 
-// 「關於」視窗的 window name 與初始分頁標記.
-//
-// 分頁以 URL hash 傳遞: #about 顯示「關於」, #about-license 顯示「第三方授權」;
-// 前端 (main.ts / About.vue) 據此決定掛載的元件與初始分頁.
-const (
-	aboutWindowName = "about"
-	aboutTabAbout   = "about"
-	aboutTabLicense = "license"
-)
+// aboutWindowName 為「關於」視窗的 window name, 用以確保同時只有一個此視窗.
+// 視窗以 URL hash #about 載入; 前端 (main.ts / About.vue) 據此掛載「關於」元件.
+// 第三方授權為視窗內的分頁, 不另設選單項.
+const aboutWindowName = "about"
 
 // buildAppMenu 依平台慣例組裝應用程式選單.
 //
-// macOS 採 App / 資料 / 編輯 / 顯示 / 視窗 / 說明 結構, 「關於」置於 App 選單;
-// 其他平台 (Windows) 採 檔案 / 資料 / 編輯 / 顯示 / 說明 結構, 「關於」置於說明
-// 選單. 選單文案全為繁體中文.
+// macOS 採 App / 資料 / 編輯 / 顯示 / 視窗 結構, 「關於」置於 App 選單; 第三方
+// 授權於「關於」視窗內以分頁呈現, 依 macOS 慣例 (授權 / 致謝放在 About 視窗)
+// 不另設說明選單. 其他平台 (Windows) 採 檔案 / 資料 / 編輯 / 顯示 / 說明 結構,
+// 「關於」置於說明選單. 選單文案全為繁體中文.
 //
 // Arg(s):
 //
@@ -49,7 +45,7 @@ func buildDarwinMenu(app *application.App, menu *application.Menu) {
 	// 應用程式選單 (標題為應用顯示名稱), 含「關於」與標準的服務 / 隱藏 / 結束.
 	appSub := menu.AddSubmenu(appDisplayName)
 	appSub.Add("關於 " + appDisplayName).OnClick(func(*application.Context) {
-		showAbout(app, aboutTabAbout)
+		showAbout(app)
 	})
 	appSub.AddSeparator()
 	appSub.AddRole(application.ServicesMenu)
@@ -78,12 +74,6 @@ func buildDarwinMenu(app *application.App, menu *application.Menu) {
 	setRoleLabel(winSub, application.Minimise, "最小化")
 	setRoleLabel(winSub, application.Zoom, "縮放")
 	setRoleLabel(winSub, application.Front, "全部移至最前")
-
-	// 說明選單 (「關於」已置於應用程式選單, 此處提供「第三方授權」).
-	helpSub := menu.AddSubmenu("說明")
-	helpSub.Add("第三方授權").OnClick(func(*application.Context) {
-		showAbout(app, aboutTabLicense)
-	})
 }
 
 // buildDefaultMenu 組裝 Windows (及其他非 macOS 平台) 慣例的應用程式選單.
@@ -98,10 +88,7 @@ func buildDefaultMenu(app *application.App, menu *application.Menu) {
 
 	helpSub := menu.AddSubmenu("說明")
 	helpSub.Add("關於 " + appDisplayName).OnClick(func(*application.Context) {
-		showAbout(app, aboutTabAbout)
-	})
-	helpSub.Add("第三方授權").OnClick(func(*application.Context) {
-		showAbout(app, aboutTabLicense)
+		showAbout(app)
 	})
 }
 
@@ -154,23 +141,12 @@ func setRoleLabel(m *application.Menu, role application.Role, label string) {
 	}
 }
 
-// showAbout 開啟 (或聚焦既有的)「關於」視窗, 並切換至指定分頁.
+// showAbout 開啟 (或聚焦既有的)「關於」視窗.
 //
-// 以 window name 確保同時只有一個「關於」視窗: 已存在則更新 URL hash 並聚焦,
-// 否則新建一個小尺寸視窗.
-//
-// Arg(s):
-//
-//	app: 目前的 application
-//	tab: 初始分頁 (aboutTabAbout 或 aboutTabLicense)
-func showAbout(app *application.App, tab string) {
-	url := "/#" + aboutWindowName
-	if tab == aboutTabLicense {
-		url += "-" + aboutTabLicense
-	}
-
+// 以 window name 確保同時只有一個「關於」視窗: 已存在則聚焦, 否則新建一個
+// 小尺寸視窗. 第三方授權為視窗內的分頁, 由使用者於視窗內切換.
+func showAbout(app *application.App) {
 	if w, ok := app.Window.GetByName(aboutWindowName); ok {
-		w.SetURL(url)
 		w.Focus()
 		return
 	}
@@ -182,6 +158,6 @@ func showAbout(app *application.App, tab string) {
 		Height:    600,
 		MinWidth:  380,
 		MinHeight: 420,
-		URL:       url,
+		URL:       "/#" + aboutWindowName,
 	})
 }
