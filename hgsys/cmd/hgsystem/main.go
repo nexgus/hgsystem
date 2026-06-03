@@ -130,6 +130,10 @@ func main() {
 		URL:    "/",
 		Width:  1400,
 		Height: 900,
+		// macOS 的 application menu 一律為全域選單列, 但 Windows / Linux 預設不會
+		// 把它掛到視窗上, 需視窗明確選用. 開啟此旗標讓上方以 SetApplicationMenu
+		// 設定的選單在 Windows / Linux 顯示為視窗選單列; macOS 為 no-op.
+		UseApplicationMenu: true,
 	})
 
 	if err := wailsApp.Run(); err != nil {
