@@ -147,9 +147,7 @@ wixl (msitools 0.106) 對 `<Environment>` 元素之 `Permanent="no"` 並未發�
 
 ### 6.3 MSI metadata 一律使用 ASCII (codepage 限制)
 
-Windows Installer 以 `IsValidCodePage` 驗證資料庫字串池與 `_SummaryInformation` stream 的 codepage, 而 UTF-8 (`65001`) 並非系統安裝之 code page (`IsValidCodePage` 回傳 false), 驗證不過時 `msiexec` 會直接拒絕開啟封裝, 顯示不是正常的 Windows installer 封裝而完全無法安裝. 因此 `Product@Name` 與 `Package@Description` 一律使用 ASCII, 不設 `SummaryCodepage`, 由 wixl 以預設 cp1252 (Summary) 與 neutral (資料庫字串池) 寫入; 內容皆 ASCII 故不會亂碼亦可正常安裝. 此設定與同一工具鏈產出, 經實機驗證可安裝之 wova MSI 一致.
-
-> 註: 早期版本曾將兩處 codepage 後處理為 `65001` 以顯示中文 ProductName / description, 但 `65001` 無法通過 Windows 的 `IsValidCodePage` 驗證, 導致 MSI 在 Windows 端無法開啟. 若日後需於 metadata 顯示繁體中文, 須改用 cp950 (Big5) 等系統實際安裝之 code page, 而非 UTF-8.
+Windows Installer 以 `IsValidCodePage` 驗證資料庫字串池與 `_SummaryInformation` stream 的 codepage, 而 UTF-8 (`65001`) 並非系統安裝之 code page (`IsValidCodePage` 回傳 false), 驗證不過時 `msiexec` 會直接拒絕開啟封裝, 顯示不是正常的 Windows installer 封裝而完全無法安裝. 因此 `Product@Name` 與 `Package@Description` 一律使用 ASCII, 不設 `SummaryCodepage`, 由 wixl 以預設 cp1252 (Summary) 與 neutral (資料庫字串池) 寫入; 內容皆 ASCII 故不會亂碼亦可正常安裝. 若日後需於 metadata 顯示繁體中文, 須改用 cp950 (Big5) 等系統實際安裝之 code page, 而非 UTF-8 (`65001` 無法通過 `IsValidCodePage`).
 
 ## 7. 軟體更新
 

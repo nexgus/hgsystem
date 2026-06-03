@@ -23,9 +23,6 @@ __pycache__/
 /frontend/bindings/
 /frontend/tsconfig.tsbuildinfo
 
-# Update marker dropped by self-update before restart
-/updated
-
 # Generated MSI manifest (built from msi/hgsystem.wxs.in by build.sh)
 /msi/hgsystem.wxs
 
