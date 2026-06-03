@@ -32,6 +32,11 @@ var assets embed.FS
 var iconBytes []byte
 
 func main() {
+	// macOS 應用程式選單的粗體標題取自主 bundle 的 CFBundleName; 於建立
+	// application 前先設為應用顯示名稱, 使其顯示「HGSystem」而非裸執行檔的
+	// 檔名. 非 darwin 平台為 no-op. 參見 appname_darwin.go.
+	setAppName(appDisplayName)
+
 	var (
 		host    = flag.String("H", "localhost", "MongoDB host address (also --host).")
 		port    = flag.Int("p", 27017, "MongoDB port number (also --port).")
@@ -88,7 +93,7 @@ func main() {
 
 	wailsApp := application.New(application.Options{
 		Name:        "hgsystem",
-		Description: fmt.Sprintf("豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (%s)", version.String),
+		Description: "豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統",
 		Icon:        iconBytes,
 		Services: []application.Service{
 			application.NewService(customerSvc),
@@ -113,7 +118,7 @@ func main() {
 	wailsApp.Menu.SetApplicationMenu(buildAppMenu(wailsApp))
 
 	wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title: fmt.Sprintf("豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (%s)", version.String),
+		Title: "豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統",
 		// 不指定 BackgroundColour, 讓 native window 透出 → 由前端 CSS 的
 		// color-scheme + Canvas 系統色決定亮 / 暗主題, 與 macOS 系統設定一致.
 		URL:    "/",
