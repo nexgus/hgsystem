@@ -27,3 +27,6 @@ __pycache__/
 /data/
 /db_backup/
 temp/
+
+# Test area
+/hgsys/cmd/check/

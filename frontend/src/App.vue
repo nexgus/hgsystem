@@ -7,13 +7,11 @@ import {
   SearchService,
   TitleService,
   BackupService,
-  SystemService,
 } from "../bindings/hgsys/pkg/app";
 import type { Customer, Worksheet } from "./lib/types";
 import { emptyCustomer, emptyWorksheet } from "./lib/types";
 import type { EditMode } from "./lib/editMode";
 import { formatROCDate } from "./lib/rocDate";
-import MenuBar from "./components/MenuBar.vue";
 import CustomerPanel from "./components/CustomerPanel.vue";
 import WorksheetHistoryTable from "./components/WorksheetHistoryTable.vue";
 import WorksheetPanel from "./components/WorksheetPanel.vue";
@@ -54,11 +52,6 @@ const info = ref<{
   cancelLabel?: string;
   onConfirm?: () => void;
 } | null>(null);
-const appVersion = ref("");
-
-// isMac 控制是否渲染視窗內 MenuBar.vue. Mac 上由 Go 端建立原生選單列,
-// menu item 透過 event 觸發前端的 onMenu* handler.
-const isMac = ref(false);
 
 // ---- 連動: customer 編輯模式 → worksheet 禁制 -----------------------------
 function applyWorksheetInhibit(inhibited: boolean) {
@@ -135,12 +128,8 @@ async function setCurrentCustomer(c: Customer | null) {
 }
 
 onMounted(async () => {
-  appVersion.value = await SystemService.Version();
-  isMac.value = (await SystemService.Platform()) === "darwin";
-
-  // 訂閱 Go 端原生 menu 發出的事件 (Mac 才會觸發, 但訂閱本身在所有平台都無害).
-  Events.On("menu:about", () => { onMenuAbout(); });
-  Events.On("menu:exit", () => { onMenuExit(); });
+  // 訂閱 Go 端原生選單「資料」項目發出的事件; 備份 / 還原需在主視窗前端跑
+  // 目錄挑選與對話框流程.
   Events.On("menu:backup", () => { onMenuBackup(); });
   Events.On("menu:restore", () => { onMenuRestore(); });
 
@@ -335,17 +324,6 @@ function selectWorksheet(id: string) {
 }
 
 // ---- 選單動作 --------------------------------------------------------------
-function onMenuAbout() {
-  info.value = {
-    title: "有關",
-    message: `豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (${appVersion.value})`,
-  };
-}
-
-async function onMenuExit() {
-  await SystemService.Exit();
-}
-
 async function onMenuBackup() {
   const dir = await Dialogs.OpenFile({
     Title: "選擇備份目錄",
@@ -399,13 +377,6 @@ const historyFrozen = computed(() =>
 
 <template>
   <div class="app-shell">
-    <MenuBar
-      v-if="!isMac"
-      @about="onMenuAbout"
-      @exit="onMenuExit"
-      @backup="onMenuBackup"
-      @restore="onMenuRestore"
-    />
     <div class="app-content">
       <div class="customer-row">
         <CustomerPanel

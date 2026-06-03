@@ -18,9 +18,6 @@
   --button-bg: #ffffff;
   --button-hover-bg: #f0f0f0;
   --button-disabled-fg: #a0a0a4;
-  --menu-bar-bg: #ececef;
-  --menu-popup-bg: #ffffff;
-  --menu-popup-hover-bg: #e8f0fe;
   --dialog-bg: #ffffff;
   --dialog-backdrop: rgba(0, 0, 0, 0.4);
   --row-highlight-bg: #6495ed;
@@ -149,49 +146,6 @@ tr.selected td {
   color: var(--row-highlight-fg);
 }
 
-.menu-bar {
-  display: flex;
-  background-color: var(--menu-bar-bg);
-  border-bottom: 1px solid var(--border-color);
-  padding: 4px;
-  gap: 8px;
-}
-
-.menu-bar > .menu {
-  position: relative;
-}
-
-.menu-bar button.menu-button {
-  background-color: transparent;
-  border: none;
-  padding: 4px 12px;
-}
-
-.menu-bar .menu-popup {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background-color: var(--menu-popup-bg);
-  border: 1px solid var(--border-color);
-  min-width: 140px;
-  padding: 4px 0;
-  z-index: 50;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.menu-bar .menu-popup button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background-color: transparent;
-  padding: 6px 12px;
-}
-
-.menu-bar .menu-popup button:hover {
-  background-color: var(--menu-popup-hover-bg);
-}
-
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -261,9 +215,6 @@ tr.selected td {
     --button-bg: #2c2c2e;
     --button-hover-bg: #3a3a3c;
     --button-disabled-fg: #6a6a6c;
-    --menu-bar-bg: #2c2c2e;
-    --menu-popup-bg: #2c2c2e;
-    --menu-popup-hover-bg: #3a4a5e;
     --dialog-bg: #2c2c2e;
     --dialog-backdrop: rgba(0, 0, 0, 0.6);
     --row-highlight-bg: #4a76c2;

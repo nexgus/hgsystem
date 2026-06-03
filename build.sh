@@ -35,8 +35,11 @@ if [ -z "$VER" ]; then
     exit 1
 fi
 
-# 版本資訊於編譯期注入 hgsys/pkg/version.
-VERLD="-X ${PKG}/pkg/version.GitCommitHash=${COMMIT} -X ${PKG}/pkg/version.GoVersion=${GOVER}"
+# 版本資訊於編譯期注入 hgsys/pkg/version. BuildDate 為編譯機器當地時間
+# (ISO 8601 含時區 offset, 例如 2026-06-03T08:19:01+0800), 於 build session
+# 開頭取一次, 使本次建置各 binary 的時間戳一致.
+BUILDDATE=$(date +%Y-%m-%dT%H:%M:%S%z)
+VERLD="-X ${PKG}/pkg/version.GitCommitHash=${COMMIT} -X ${PKG}/pkg/version.GoVersion=${GOVER} -X ${PKG}/pkg/version.BuildDate=${BUILDDATE}"
 
 # Wails v3 與 Node 主版本固定; 升級需明確修改本檔.
 WAILS_VERSION="v3.0.0-alpha.95"

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"runtime"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -83,9 +82,9 @@ func main() {
 	worksheetSvc := app.NewWorksheetService(repos)
 	searchSvc := app.NewSearchService(repos)
 	titleSvc := app.NewTitleService(repos)
-	// Backup / System service 需要 *App 來發送事件 / 結束程式; 在 New 之後再注入.
+	// BackupService 需要 *App 來發送事件; 在 New 之後再注入.
 	backupSvc := app.NewBackupService(nil, client)
-	systemSvc := app.NewSystemService(nil)
+	systemSvc := app.NewSystemService()
 
 	wailsApp := application.New(application.Options{
 		Name:        "hgsystem",
@@ -107,15 +106,11 @@ func main() {
 		},
 	})
 
-	// 現在有了 *App, 把它交給需要發送事件 / 結束程式的 service.
+	// 現在有了 *App, 把它交給需要發送事件的 service.
 	backupSvc.SetApp(wailsApp)
-	systemSvc.SetApp(wailsApp)
 
-	// macOS 上以原生選單列取代視窗內 MenuBar.vue (前端依 SystemService.Platform()
-	// 決定不渲染 MenuBar). 其他平台維持視窗內 menu, 不在此處建立原生 menu.
-	if runtime.GOOS == "darwin" {
-		setupMacMenu(wailsApp)
-	}
+	// 依平台慣例建立原生應用程式選單 (macOS / Windows 皆然). 參見 menu.go.
+	wailsApp.Menu.SetApplicationMenu(buildAppMenu(wailsApp))
 
 	wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title: fmt.Sprintf("豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統 (%s)", version.String),
@@ -130,28 +125,4 @@ func main() {
 		slog.Error("application exited with error", "err", err)
 		os.Exit(1)
 	}
-}
-
-// setupMacMenu 建立 macOS 原生選單列. "系統" 與 "資料" 兩項目對應視窗內 MenuBar.vue
-// 的功能, click 時透過 event 通知前端, 由前端共用同一組 handler.
-//
-// Edit / Window 為 Mac 標準角色 (剪下 / 複製 / 貼上 / Minimize / Zoom 等),
-// AppMenu 角色提供 About / Quit / Hide 等系統慣例項目.
-func setupMacMenu(app *application.App) {
-	menu := app.NewMenu()
-	menu.AddRole(application.AppMenu)
-
-	sys := menu.AddSubmenu("系統")
-	sys.Add("有關").OnClick(func(*application.Context) { app.Event.Emit("menu:about") })
-	sys.AddSeparator()
-	sys.Add("離開").OnClick(func(*application.Context) { app.Event.Emit("menu:exit") })
-
-	data := menu.AddSubmenu("資料")
-	data.Add("備份").OnClick(func(*application.Context) { app.Event.Emit("menu:backup") })
-	data.Add("還原").OnClick(func(*application.Context) { app.Event.Emit("menu:restore") })
-
-	menu.AddRole(application.EditMenu)
-	menu.AddRole(application.WindowMenu)
-
-	app.Menu.SetApplicationMenu(menu)
 }
