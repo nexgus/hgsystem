@@ -2,8 +2,8 @@
 
 Go + Wails v3 desktop app for an optical shop's customer & prescription system
 (Traditional Chinese UI, MongoDB-backed, single GUI binary). Build/deploy:
-[README.md](README.md); per-version changes: [CHANGE.md](CHANGE.md). This file
-covers only what isn't obvious from the code.
+[README.md](README.md); per-version release notes: [docs/releases/](docs/releases/).
+This file covers only what isn't obvious from the code.
 
 ## Layout
 

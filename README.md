@@ -14,7 +14,7 @@ hgsystem (豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統) 為一支 Go +
 - windows/amd64 交叉編譯需要 mingw 的 C 編譯器 (`x86_64-w64-mingw32-gcc`), 用於連結 Microsoft Edge WebView2 客戶端. 若 PATH 中找不到, `build.sh` 會透過 Homebrew 自動安裝 `mingw-w64`.
 - msitools (含 `wixl`), 用於產出 Windows MSI. 若 PATH 中找不到, `build.sh` 會透過 Homebrew 自動安裝.
 - `jq`, 僅 `build.sh --license` (重新掃描第三方授權) 時需要; 若 PATH 中找不到, `build.sh` 會透過 Homebrew 自動安裝. 前端授權掃描所需之 `rollup-plugin-license` 為 `frontend/` 之 devDependency, 由 `npm install` 自動取得.
-- 執行期 (非編譯期) 須有可連線之 MongoDB 服務. 預設連線 `localhost:27017`, 可由 `-H` / `-p` 旗標調整. 備份與還原功能另需 `mongodump` 與 `mongorestore` 於 PATH.
+- 執行期 (非編譯期) 須有可連線之 MongoDB 服務. 預設連線 `localhost:27017`, 可由 `-H` / `-p` 旗標調整. 備份與還原功能優先使用主機 PATH 上之 `mongodump` 與 `mongorestore`; 主機未安裝時, 自動改用 MongoDB 容器內的對應工具.
 
 ## 2. 編譯
 
@@ -68,7 +68,7 @@ bin/hgsystem-<版本>.msi
 - Windows: `%LOCALAPPDATA%\hgsystem\logs\YYMMDD_NNNN.log`
 - 其餘平台: `$XDG_STATE_HOME/hgsystem/logs/` (或 `~/.local/state/hgsystem/logs/`).
 
-原生選單依平台慣例組織 (詳見 [`hgsys/cmd/hgsystem/menu.go`](hgsys/cmd/hgsystem/menu.go)): macOS 為 應用程式 / 資料 / 編輯 / 顯示 / 視窗, Windows 為 檔案 / 資料 / 編輯 / 顯示 / 說明. 「關於」與「檢查更新…」於 macOS 置於應用程式選單, 於 Windows 置於說明選單. 「資料」選單之備份 / 還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框; 「檢查更新…」之行為詳見第 7 節.
+原生選單依平台慣例組織 (詳見 [`hgsys/cmd/hgsystem/menu.go`](hgsys/cmd/hgsystem/menu.go)): macOS 為 應用程式 / 資料 / 編輯 / 顯示 / 視窗, Windows 為 檔案 / 資料 / 編輯 / 顯示 / 說明. "關於"與"檢查更新..."於 macOS 置於應用程式選單, 於 Windows 置於說明選單. "資料"選單之備份 / 還原以 `mongodump` / `mongorestore` 子程序執行, stderr 以 Wails event 串流至前端對話框; "檢查更新..."之行為詳見第 7 節.
 
 ## 4. 清除產物
 
@@ -84,13 +84,13 @@ bash clear.sh
 
 修改 Vue 前端 (`frontend/src/`) 時, 由於 `//go:embed all:dist` 於編譯期固化前端產出, 純前端變更亦須重跑 `build.sh` (或至少 `npm run build` + 將 `frontend/dist` 重新複製至 `hgsys/cmd/hgsystem/dist`), 才能於下次 `go build` 時生效.
 
-「關於」視窗的「第三方授權」分頁顯示散布物所引用之第三方開源元件授權, 分「直接引用」與「間接引用」兩表. 授權清單來自三個來源, 皆為自動產生:
+"關於"視窗的"第三方授權"分頁顯示散布物所引用之第三方開源元件授權, 分"直接引用"與"間接引用"兩表. 授權清單來自三個來源, 皆為自動產生:
 
 - **Go 依賴** (直接 + 間接): [`scripts/gen-licenses.sh`](scripts/gen-licenses.sh) 掃描 `hgsystem` 與 `hgupgrade` 兩執行檔於 darwin + windows 編譯進 binary 的 module, 依 `hgsys/go.mod` 之 require 分直接 / 間接, 偵測授權後產出 [`frontend/src/licenses-go.ts`](frontend/src/licenses-go.ts) (需 `go` 與 `jq`).
-- **前端 npm 依賴**: 由 Vite + `rollup-plugin-license` 於建置時取「實際打包進 `dist`」的套件 (經 tree-shaking, 不含僅建置期用的 TypeScript / Vue 編譯器 / Babel / postcss 等), 依 `frontend/package.json` 之 dependencies 分直接 / 間接, 產出 [`frontend/src/licenses-frontend.ts`](frontend/src/licenses-frontend.ts).
-- **手動素材** (圖示等「既非 Go module、也非 npm 套件」者, 如 Noto Emoji 應用圖示、Material Symbols 選單圖示): 描述於 [`scripts/licenses-manual/manifest.json`](scripts/licenses-manual/manifest.json) (每筆含 `type` / `copyright` / `licenseUrl`), 由 [`scripts/gen-licenses.sh`](scripts/gen-licenses.sh) 產出 [`frontend/src/licenses-manual.ts`](frontend/src/licenses-manual.ts). 是否嵌入授權全文由產生器**自動**判斷: 該 `type` 已見於上述 Go / npm 自動清單者僅放著作權 (全文沿用該元件, 例: Material Symbols 的 Apache-2.0 已隨 Go 依賴顯示), 未見者則抓 `licenseUrl` 原文嵌入 (例: Noto 的 SIL OFL 1.1)。欄位與用法見 [`scripts/licenses-manual/README.md`](scripts/licenses-manual/README.md).
+- **前端 npm 依賴**: 由 Vite + `rollup-plugin-license` 於建置時取"實際打包進 `dist`"的套件 (經 tree-shaking, 不含僅建置期用的 TypeScript / Vue 編譯器 / Babel / postcss 等), 依 `frontend/package.json` 之 dependencies 分直接 / 間接, 產出 [`frontend/src/licenses-frontend.ts`](frontend/src/licenses-frontend.ts).
+- **手動素材** (圖示等"既非 Go module, 也非 npm 套件"者, 如 Noto Emoji 應用圖示, Material Symbols 選單圖示): 描述於 [`scripts/licenses-manual/manifest.json`](scripts/licenses-manual/manifest.json) (每筆含 `type` / `copyright` / `licenseUrl`), 由 [`scripts/gen-licenses.sh`](scripts/gen-licenses.sh) 產出 [`frontend/src/licenses-manual.ts`](frontend/src/licenses-manual.ts). 是否嵌入授權全文由產生器**自動**判斷: 該 `type` 已見於上述 Go / npm 自動清單者僅放著作權 (全文沿用該元件, 例: Material Symbols 的 Apache-2.0 已隨 Go 依賴顯示), 未見者則抓 `licenseUrl` 原文嵌入 (例: Noto 的 SIL OFL 1.1). 欄位與用法見 [`scripts/licenses-manual/README.md`](scripts/licenses-manual/README.md).
 
-三份 `licenses-*.ts` 皆入版控 (`licenses.ts` 僅存共用型別 `ThirdPartyLicense`). 凡依賴或素材變動 (`hgsys/go.mod`、`frontend/package.json` 或 `scripts/licenses-manual/manifest.json`), 以 **`bash build.sh --license`** 於建置時一併重產上述三份自動清單, 使授權揭露與實際散布一致; 不加 `--license` 的 `build.sh` 沿用既有清單、不重新掃描. (亦可單獨跑 `bash scripts/gen-licenses.sh` 重產 Go 與手動素材兩份; 手動素材 `embed:true` 的抓取需網路.) 顯示時依授權種類去重 (同種授權只列一次條文), 但保留各元件著作權聲明.
+三份 `licenses-*.ts` 皆入版控 (`licenses.ts` 僅存共用型別 `ThirdPartyLicense`). 凡依賴或素材變動 (`hgsys/go.mod`, `frontend/package.json` 或 `scripts/licenses-manual/manifest.json`), 以 **`bash build.sh --license`** 於建置時一併重產上述三份自動清單, 使授權揭露與實際散布一致; 不加 `--license` 的 `build.sh` 沿用既有清單, 不重新掃描. (亦可單獨跑 `bash scripts/gen-licenses.sh` 重產 Go 與手動素材兩份; 手動素材 `embed:true` 的抓取需網路.) 顯示時依授權種類去重 (同種授權只列一次條文), 但保留各元件著作權聲明.
 
 domain 行為涉及與 MongoDB 中既有資料及 `mongodump` 備份檔之相容性, 變更時須留意以下不變式:
 
@@ -161,11 +161,11 @@ Windows Installer 以 `IsValidCodePage` 驗證資料庫字串池與 `_SummaryInf
 
 ## 7. 軟體更新
 
-主選單「檢查更新…」(macOS 於應用程式選單「關於」下方, Windows 於說明選單) 會連線至 GitHub 之 `nexgus/hgsystem` 儲存庫, 列出所有 release, 略過 draft 與 prerelease, 以語意化版本 (`golang.org/x/mod/semver`) 挑出最大正式版並與當前版本比較. 線上 tag 同時存在帶與不帶 `v` 前綴兩種寫法 (如 `v0.1.1` 與 `0.7.0`), 比較前一律正規化. 版本號定義於 [`hgsys/pkg/version/version.go`](hgsys/pkg/version/version.go).
+主選單"檢查更新..."(macOS 於應用程式選單"關於"下方, Windows 於說明選單) 會連線至 GitHub 之 `nexgus/hgsystem` 儲存庫, 列出所有 release, 略過 draft 與 prerelease, 以語意化版本 (`golang.org/x/mod/semver`) 挑出最大正式版並與當前版本比較. 線上 tag 同時存在帶與不帶 `v` 前綴兩種寫法 (如 `v0.1.1` 與 `0.7.0`), 比較前一律正規化. 版本號定義於 [`hgsys/pkg/version/version.go`](hgsys/pkg/version/version.go).
 
 發現新版且存在對應本平台之 asset 時, 詢問使用者是否更新. 確認後由 hgsystem 自身下載對應 asset (邊下載邊以 `update:progress` event 於前端顯示進度條), 驗證大小後將內嵌的 hgupgrade 釋出至暫存目錄並啟動之, 隨即關閉自己. 後續換版由 hgupgrade 進行 (hgsystem 執行中無法替換自身):
 
-- **macOS**: 下載 `hgsystem-<版本>-darwin-arm64` 至執行檔同目錄, 設定執行權限後以「先建暫存 symlink 再 `rename`」之原子方式, 將指向版本檔之 symlink 換成指向新版; 保留舊版本檔. 以程式下載不會被加上 `com.apple.quarantine`, 且 `go build` 對 arm64 之 ad-hoc 簽章隨位元組保留, 故無 Gatekeeper 阻擋.
+- **macOS**: 下載 `hgsystem-<版本>-darwin-arm64` 至執行檔同目錄, 設定執行權限後以"先建暫存 symlink 再 `rename`"之原子方式, 將指向版本檔之 symlink 換成指向新版; 保留舊版本檔. 以程式下載不會被加上 `com.apple.quarantine`, 且 `go build` 對 arm64 之 ad-hoc 簽章隨位元組保留, 故無 Gatekeeper 阻擋.
 - **Windows**: 下載 `hgsystem-<版本>.msi` 至暫存目錄, 以 `msiexec /i ... /qb!` 安裝 (MajorUpgrade 自動替換舊版). 因屬 per-machine 安裝, 會觸發一次 UAC 提權; 安裝中斷時 Windows Installer 一般會自動回滾為舊版.
 
 hgupgrade 先等待原 hgsystem 行程結束 (上限 30 秒, 逾時即中止) 再換版, 完成後重新啟動. 任何換版 / 安裝前的失敗皆不動既有安裝, 改以原生對話框 (macOS `osascript`, Windows `MessageBox`) 告知使用者, 待其按確認後重啟仍可用的原版本.
