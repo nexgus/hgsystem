@@ -1,7 +1,7 @@
 package version
 
 // String 為給人看的應用程式版本字串. 用於視窗標題與「關於」視窗.
-const String = "0.8.0"
+const String = "0.9.0"
 
 // GitCommitHash, GoVersion 與 BuildDate 由 build.sh 於建置時透過 -ldflags 注入.
 // 以 `go run` 臨時執行時, 預設為空字串. BuildDate 為編譯機器當地時間

@@ -187,12 +187,12 @@ function onSave() {
 .customer-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .form {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--row-gap);
 }
 .row {
   display: flex;
@@ -206,6 +206,8 @@ function onSave() {
 .controls {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+}
+.controls > button {
+  flex: 1;
 }
 </style>

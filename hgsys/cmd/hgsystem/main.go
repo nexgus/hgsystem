@@ -128,8 +128,11 @@ func main() {
 		// 不指定 BackgroundColour, 讓 native window 透出 → 由前端 CSS 的
 		// color-scheme + Canvas 系統色決定亮 / 暗主題, 與 macOS 系統設定一致.
 		URL:    "/",
-		Width:  1400,
-		Height: 900,
+		// 啟動時即最大化視窗 (macOS 為 zoom 填滿可用區域, Windows 為最大化).
+		// Width / Height 在此情況下作為使用者取消最大化後的還原尺寸.
+		StartState: application.WindowStateMaximised,
+		Width:      1600,
+		Height:     900,
 		// macOS 的 application menu 一律為全域選單列, 但 Windows / Linux 預設不會
 		// 把它掛到視窗上, 需視窗明確選用. 開啟此旗標讓上方以 SetApplicationMenu
 		// 設定的選單在 Windows / Linux 顯示為視窗選單列; macOS 為 no-op.

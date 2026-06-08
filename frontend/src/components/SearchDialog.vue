@@ -156,7 +156,7 @@ function onKeydown(e: KeyboardEvent) {
   margin: 0 6px;
 }
 .search-buttons > button {
-  min-width: 80px;
+  flex: 1;
 }
 .results {
   flex: 1;

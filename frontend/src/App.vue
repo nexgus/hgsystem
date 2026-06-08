@@ -453,7 +453,7 @@ const historyFrozen = computed(() =>
 .customer-row {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 </style>
