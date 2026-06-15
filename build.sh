@@ -366,9 +366,11 @@ mklink
 
 echo
 echo "Built binaries:"
-for f in bin/*; do
-    [ -L "$f" ] && continue
-    [ -f "$f" ] && echo "  $(basename "$f")"
+# 僅列出本次建置之產物 (當前 ${VER}); bin/ 內可能殘留舊版檔, 不應一併列入.
+for f in "${BIN}-${VER}-darwin-arm64" \
+         "${BIN}-${VER}-windows-amd64.exe" \
+         "${BIN}-${VER}.msi"; do
+    [ -f "bin/$f" ] && echo "  $f"
 done
 
 echo
