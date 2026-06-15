@@ -274,12 +274,14 @@ function build_msi {
         || { echo "Error: msibuild failed to restore ProductName." >&2; rm -f "$prop_idt"; exit 1; }
     rm -f "$prop_idt"
 
+    # 開始功能表與桌面兩個捷徑名稱相同, 一併還原 (各列以 Id + Directory 定位).
     echo "Restoring Chinese Shortcut name..."
     shortcut_name=$(grep -A6 'Id="HgsystemStartMenuShortcut"' "msi/${BIN}.wxs" \
         | sed -n 's/.*Name="\(.*\)".*/\1/p' | head -1)
     sc_idt=$(mktemp)
     msiinfo export "bin/${BIN}-${VER}.msi" Shortcut \
         | sed "s|^\(HgsystemStartMenuShortcut${tab}ProgramMenuFolder${tab}\)[^${tab}]*|\1${shortcut_name}|" \
+        | sed "s|^\(HgsystemDesktopShortcut${tab}DesktopFolder${tab}\)[^${tab}]*|\1${shortcut_name}|" \
         > "$sc_idt"
     msibuild "bin/${BIN}-${VER}.msi" -i "$sc_idt" \
         || { echo "Error: msibuild failed to restore Shortcut name." >&2; rm -f "$sc_idt"; exit 1; }

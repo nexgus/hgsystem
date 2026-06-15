@@ -61,6 +61,12 @@
                       Name="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
                       Target="[INSTALLDIR]hgsystem.exe"
                       WorkingDirectory="INSTALLDIR" />
+            <!-- 公用桌面捷徑; 同屬本 component, 隨安裝/解除自動建立與移除. -->
+            <Shortcut Id="HgsystemDesktopShortcut"
+                      Directory="DesktopFolder"
+                      Name="豪格鐘錶隱形眼鏡公司眼鏡客戶管理系統"
+                      Target="[INSTALLDIR]hgsystem.exe"
+                      WorkingDirectory="INSTALLDIR" />
           </Component>
 
           <!--
@@ -88,6 +94,9 @@
 
       <!-- Start 功能表 (全使用者 Programs), 供上方 Shortcut 放置入口. -->
       <Directory Id="ProgramMenuFolder" />
+
+      <!-- 公用桌面 (per-machine 安裝下為全使用者 Public Desktop), 供桌面 Shortcut 放置入口. -->
+      <Directory Id="DesktopFolder" />
     </Directory>
 
     <Feature Id="Main" Title="hgsystem" Level="1">
