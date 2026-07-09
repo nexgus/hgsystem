@@ -23,6 +23,9 @@
   --button-disabled-fg: #a0a0a4;
   --dialog-bg: #ffffff;
   --dialog-backdrop: rgba(0, 0, 0, 0.4);
+  /* sticky 表頭底色. 需為不透明色, 捲動時才不會透出下方資料列;
+     不可沿用 dark mode 下為 transparent 的 --section-bg. */
+  --table-header-bg: #f0f0f2;
   --row-highlight-bg: #6495ed;
   --row-highlight-fg: #ffffff;
   --error-fg: #c0392b;
@@ -143,9 +146,15 @@ td {
   white-space: nowrap;
 }
 
-/* 表頭底線保留作為欄位標題分隔; 資料列之間不畫橫線, 以壓低整體高度. */
-th {
-  border-bottom: 1px solid var(--border-row);
+/* 表頭固定於捲動容器頂端, 往下捲時不被捲走. box-shadow 隨 sticky 元素一起
+   移動, 分隔線才不會消失 (border-collapse 的 border-bottom 在 sticky 捲動時
+   會不見); 表頭底線同時保留作為欄位標題分隔, 資料列之間不畫橫線以壓低高度. */
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--table-header-bg);
+  box-shadow: inset 0 -1px 0 var(--border-row);
 }
 
 tr.selected td {
@@ -224,6 +233,7 @@ tr.selected td {
     --button-disabled-fg: #6a6a6c;
     --dialog-bg: #2c2c2e;
     --dialog-backdrop: rgba(0, 0, 0, 0.6);
+    --table-header-bg: #3a3a3c;
     --row-highlight-bg: #4a76c2;
     --error-fg: #ff6b5b;
     --edit-red: #ff6b5b;

@@ -104,13 +104,53 @@ type SearchCriteria struct {
 	DateTo    *time.Time `json:"dateTo"`
 }
 
+// SearchResult 為搜尋 / 搜尋紀錄回傳的單筆結果: 客戶本體, 外加其"最後一筆"
+// worksheet 中要在搜尋清單直接呈現的欄位 (右眼 / 左眼度數與收 / 交件日).
+// 客戶無任何 worksheet 時, 度數為空字串, 日期為 nil.
+type SearchResult struct {
+	Customer        domain.Customer `json:"customer"`
+	LastSphR        string          `json:"lastSphR"`
+	LastSphL        string          `json:"lastSphL"`
+	LastOrderTime   *time.Time      `json:"lastOrderTime"`
+	LastDeliverTime *time.Time      `json:"lastDeliverTime"`
+}
+
+// withLatestWorksheets 為 customers 各補上其最後一筆 worksheet 的摘要欄位, 組成
+// []SearchResult. 以單次 aggregation 取所有相關 worksheet, 避免逐一查詢.
+//
+// field / from / to 對應搜尋的日期範圍條件 (field 為 "order_time" /
+// "deliver_time"); 有帶時, 取的是該日期範圍內的最後一筆工單, 而非全域最後一筆.
+// field 為空時取全域 (以收件日) 最後一筆.
+func (s *SearchService) withLatestWorksheets(ctx context.Context, customers []domain.Customer, field string, from, to *time.Time) ([]SearchResult, error) {
+	cids := make([]string, 0, len(customers))
+	for _, c := range customers {
+		cids = append(cids, c.ID)
+	}
+	latest, err := s.worksheets.LatestForCustomers(ctx, cids, field, from, to)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SearchResult, 0, len(customers))
+	for _, c := range customers {
+		r := SearchResult{Customer: c}
+		if w, ok := latest[c.ID]; ok {
+			r.LastSphR = w.SphR
+			r.LastSphL = w.SphL
+			r.LastOrderTime = w.OrderTime
+			r.LastDeliverTime = w.DeliverTime
+		}
+		out = append(out, r)
+	}
+	return out, nil
+}
+
 // Search 以子字串 regex 比對 name / addr / phone, 並以精確比對檢索 birthdate.
 // 空欄位會被忽略. 若指定了工作單期間條件, 會跨 worksheets 取出相應 cid 後再篩
 // 客戶.
 //
 // 若 birthdate 的年份為 YearNone (使用者只輸入了月日, 如 "0825"), 改以"不分年,
 // 只比月日"方式檢索, 並把結果按生日排序, 方便產生壽星名單.
-func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
+func (s *SearchService) Search(c SearchCriteria) ([]SearchResult, error) {
 	filter := map[string]any{}
 	if c.Name != "" {
 		filter["name"] = map[string]any{"$regex": fmt.Sprintf(".*%s.*", c.Name)}
@@ -140,28 +180,31 @@ func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 		}
 	}
 
+	// wsField / wsFrom / wsTo 記錄工單日期範圍條件, 一併用於後續"取範圍內最後一筆
+	// 工單"; wsField 為空代表未指定日期範圍.
+	var wsField string
+	var wsFrom, wsTo *time.Time
 	if c.DateField != "" && (c.DateFrom != nil || c.DateTo != nil) {
-		var bsonField string
 		switch c.DateField {
 		case "order":
-			bsonField = "order_time"
+			wsField = "order_time"
 		case "deliver":
-			bsonField = "deliver_time"
+			wsField = "deliver_time"
 		default:
 			return nil, fmt.Errorf("無效的日期欄位: %s", c.DateField)
 		}
+		wsFrom = c.DateFrom
 		// 將迄推到當日 23:59:59.999999999, 讓"3/15~3/15"涵蓋整天.
-		var to *time.Time
 		if c.DateTo != nil {
 			t := c.DateTo.Add(24*time.Hour - time.Nanosecond)
-			to = &t
+			wsTo = &t
 		}
-		ids, err := s.worksheets.DistinctCustomerIDsByDateRange(context.Background(), bsonField, c.DateFrom, to)
+		ids, err := s.worksheets.DistinctCustomerIDsByDateRange(context.Background(), wsField, wsFrom, wsTo)
 		if err != nil {
 			return nil, err
 		}
 		if len(ids) == 0 {
-			return []domain.Customer{}, nil
+			return []SearchResult{}, nil
 		}
 		filter["_id"] = map[string]any{"$in": ids}
 	}
@@ -182,12 +225,16 @@ func (s *SearchService) Search(c SearchCriteria) ([]domain.Customer, error) {
 			return bi.Before(*bj)
 		})
 	}
-	return res, nil
+	return s.withLatestWorksheets(context.Background(), res, wsField, wsFrom, wsTo)
 }
 
 // History 回傳目前 session 的搜尋歷史.
-func (s *SearchService) History() ([]domain.Customer, error) {
-	return s.history.List(context.Background())
+func (s *SearchService) History() ([]SearchResult, error) {
+	list, err := s.history.List(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return s.withLatestWorksheets(context.Background(), list, "", nil, nil)
 }
 
 // Remember 將客戶加入目前 session 的歷史中 (會去重).

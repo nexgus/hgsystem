@@ -2,7 +2,7 @@
 import { nextTick, ref } from "vue";
 import type { Customer } from "../lib/types";
 import { formatROCDate } from "../lib/rocDate";
-import { SearchService } from "../../bindings/hgsys/pkg/app";
+import { SearchService, SearchResult } from "../../bindings/hgsys/pkg/app";
 import ROCDateInput from "./ROCDateInput.vue";
 import { nextRowIndex, rowsPerPage, scrollSelectedIntoView } from "../lib/tableNav";
 
@@ -19,7 +19,7 @@ const dateField = ref<"order" | "deliver">("order");
 const dateFrom = ref<string | null>(null);
 const dateTo = ref<string | null>(null);
 
-const results = ref<Customer[]>([]);
+const results = ref<SearchResult[]>([]);
 const selectedId = ref<string>("");
 
 async function doSearch() {
@@ -33,18 +33,18 @@ async function doSearch() {
     dateTo: dateTo.value,
   });
   results.value = list ?? [];
-  selectedId.value = results.value[0]?.id ?? "";
+  selectedId.value = results.value[0]?.customer.id ?? "";
 }
 
 async function doHistory() {
   const list = await SearchService.History();
   results.value = list ?? [];
-  selectedId.value = results.value[0]?.id ?? "";
+  selectedId.value = results.value[0]?.customer.id ?? "";
 }
 
 function onAccept() {
-  const picked = results.value.find((c) => c.id === selectedId.value);
-  if (picked) emit("accept", picked);
+  const picked = results.value.find((r) => r.customer.id === selectedId.value);
+  if (picked) emit("accept", picked.customer);
 }
 
 const resultsEl = ref<HTMLElement>();
@@ -57,11 +57,11 @@ function onKeydown(e: KeyboardEvent) {
     onAccept();
     return;
   }
-  const current = results.value.findIndex((c) => c.id === selectedId.value);
+  const current = results.value.findIndex((r) => r.customer.id === selectedId.value);
   const next = nextRowIndex(e.key, current, results.value.length, rowsPerPage(resultsEl.value));
   if (next === null) return;
   e.preventDefault();
-  selectedId.value = results.value[next].id;
+  selectedId.value = results.value[next].customer.id;
   nextTick(() => scrollSelectedIntoView(resultsEl.value));
 }
 </script>
@@ -108,23 +108,31 @@ function onKeydown(e: KeyboardEvent) {
             <th>生日</th>
             <th>電話</th>
             <th>地址</th>
+            <th>OD/R SPH</th>
+            <th>OS/L SPH</th>
+            <th>收件日</th>
+            <th>交件日</th>
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="c in results"
-            :key="c.id"
-            :class="{ selected: c.id === selectedId }"
-            @click="selectedId = c.id"
+            v-for="r in results"
+            :key="r.customer.id"
+            :class="{ selected: r.customer.id === selectedId }"
+            @click="selectedId = r.customer.id"
             @dblclick="onAccept"
           >
-            <td>{{ c.name }}</td>
-            <td>{{ formatROCDate(c.birthdate) }}</td>
-            <td>{{ c.phones }}</td>
-            <td>{{ c.addr }}</td>
+            <td>{{ r.customer.name }}</td>
+            <td>{{ formatROCDate(r.customer.birthdate) }}</td>
+            <td>{{ r.customer.phones }}</td>
+            <td>{{ r.customer.addr }}</td>
+            <td>{{ r.lastSphR }}</td>
+            <td>{{ r.lastSphL }}</td>
+            <td>{{ formatROCDate(r.lastOrderTime) }}</td>
+            <td>{{ formatROCDate(r.lastDeliverTime) }}</td>
           </tr>
           <tr v-if="results.length === 0">
-            <td colspan="4" class="empty">(無結果)</td>
+            <td colspan="8" class="empty">(無結果)</td>
           </tr>
         </tbody>
       </table>
@@ -138,7 +146,7 @@ function onKeydown(e: KeyboardEvent) {
 
 <style scoped>
 .search-dialog {
-  width: 720px;
+  width: 1120px;
   height: 540px;
 }
 .filters {
@@ -166,6 +174,11 @@ function onKeydown(e: KeyboardEvent) {
 }
 .results tr {
   cursor: pointer;
+}
+/* 度數與日期欄較窄且不換行, 讓八欄在加寬後的視窗內一次看完, 不必右捲. */
+.results th,
+.results td {
+  white-space: nowrap;
 }
 td.empty {
   text-align: center;

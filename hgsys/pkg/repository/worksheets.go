@@ -33,6 +33,57 @@ func (r *WorksheetRepository) FindForCustomer(ctx context.Context, cid string) (
 	return out, nil
 }
 
+// LatestForCustomers 對一批 cid 各取其"最後一筆" worksheet, 回傳 cid -> Worksheet.
+//
+// field 為 "" 時, 以 order_time (收件日) 由新到舊排序取第一筆, 排序規則比照前端
+// App.vue 的 sortWorksheets. field 為 "order_time" / "deliver_time" 時, 先把
+// worksheet 過濾到該欄位落在 [from, to] 的範圍內, 再以該欄位由新到舊取第一筆 -
+// 即"該日期範圍內的最後一筆". 兩種情況皆以 _id 由新到舊 tie-break.
+//
+// Mongo 對 null / 缺值的排序視為最小, 於 descending 時排在最後, 故無日期者會被
+// 當成最舊, 與前端一致. 以單次 aggregation 完成, 避免逐一 cid 查詢.
+func (r *WorksheetRepository) LatestForCustomers(ctx context.Context, cids []string, field string, from, to *time.Time) (map[string]domain.Worksheet, error) {
+	out := map[string]domain.Worksheet{}
+	if len(cids) == 0 {
+		return out, nil
+	}
+	match := bson.M{"cid": bson.M{"$in": cids}}
+	sortField := "order_time"
+	if field != "" {
+		sortField = field
+		rangeCond := bson.M{}
+		if from != nil {
+			rangeCond["$gte"] = *from
+		}
+		if to != nil {
+			rangeCond["$lte"] = *to
+		}
+		if len(rangeCond) > 0 {
+			match[field] = rangeCond
+		}
+	}
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: match}},
+		{{Key: "$sort", Value: bson.D{{Key: sortField, Value: -1}, {Key: "_id", Value: -1}}}},
+		{{Key: "$group", Value: bson.M{"_id": "$cid", "doc": bson.M{"$first": "$$ROOT"}}}},
+	}
+	cur, err := r.coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	var rows []struct {
+		Doc domain.Worksheet `bson:"doc"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		out[row.Doc.CID] = row.Doc
+	}
+	return out, nil
+}
+
 // Insert 儲存 `w`; 若 ID 為空, 會自動指派新的字串化 ObjectId.
 func (r *WorksheetRepository) Insert(ctx context.Context, w *domain.Worksheet) (string, error) {
 	if w.ID == "" {
